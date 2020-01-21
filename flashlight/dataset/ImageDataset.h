@@ -2,6 +2,8 @@
 
 #include "flashlight/dataset/Dataset.h"
 
+#include <unordered_map>
+
 namespace fl {
 
 /**
