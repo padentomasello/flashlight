@@ -29,12 +29,19 @@ PrefetchDataset::PrefetchDataset(
       !(numThreads_ == 0 && prefetchSize_ == 0)) {
     throw std::invalid_argument("invalid numThreads or prefetchSize");
   }
+  int backends = af::getAvailableBackends();
+
+  bool cpu    = backends & AF_BACKEND_CPU;
+  bool cuda   = backends & AF_BACKEND_CUDA;
+  bool opencl = backends & AF_BACKEND_OPENCL;
+  std::cout << " cpu : " << cpu << " cuda " << cuda << " opencl " << opencl << std::endl;
   if (numThreads_ > 0) {
     auto deviceId = af::getDevice();
     threadPool_ = cpp::make_unique<ThreadPool>(
         numThreads_,
-        [deviceId](int /* threadId */) { af::setDevice(deviceId); });
+        [deviceId](int /* threadId */) {  af::setBackend(AF_BACKEND_OPENCL); });
   }
+  this->get(0);
 }
 
 std::vector<af::array> PrefetchDataset::get(int64_t idx) const {

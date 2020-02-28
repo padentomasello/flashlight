@@ -36,7 +36,7 @@ class DistributedDataset : public Dataset {
       return (idx * world_size) + world_rank;
     };
     ds_ = std::make_shared<ResampleDataset>(
-	shuffle_, permfn, shuffle_->size() / world_size);
+    shuffle_, permfn, shuffle_->size() / world_size);
     ds_ = std::make_shared<PrefetchDataset>(ds_, num_threads, prefetch_size);
     ds_ = std::make_shared<BatchDataset>(ds_, batch_size);
   }
@@ -138,6 +138,7 @@ int main(int argc, const char** argv) {
   //////////////////////////
   //  Create datasets
   /////////////////////////
+  af::setBackend(AF_BACKEND_OPENCL);
   const std::vector<float> mean = {0.485, 0.456, 0.406};
   const std::vector<float> std = {0.229, 0.224, 0.225};
   auto labels = imagenetLabels(label_path);
@@ -154,7 +155,7 @@ int main(int argc, const char** argv) {
       ImageDataset::centerCrop(224),
       ImageDataset::normalizeImage(mean, std)
   };
-  const int64_t prefetch_threads = 1;
+  const int64_t prefetch_threads = 10;
   const int64_t prefetch_size = batch_size;
   auto test = std::make_shared<ImageDataset>(
           imagenetDataset(train_list, labels, train_transforms));
@@ -180,7 +181,13 @@ int main(int argc, const char** argv) {
   //////////////////////////
   //  Load model and optimizer
   /////////////////////////
+  af::setBackend(AF_BACKEND_CUDA);
   auto model = std::make_shared<Sequential>(resnet34());
+
+  std::string continuePath = "/private/home/padentomasello/code/flashlight/build/model-1";
+  if (!continuePath.empty()) {
+    fl::load(continuePath, model);
+  }
   // synchronize parameters of the model so that the parameters in each process
   // is the same
   fl::allReduceParameters(model);

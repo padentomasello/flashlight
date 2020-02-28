@@ -46,10 +46,12 @@ std::vector<fl::Variable> ResNetBlock::forward(
   out = c2->forward(out);
   std::vector<fl::Variable> shortcut;
   if (downsample_) {
+    return relu->forward({out[0]});
     shortcut = downsample_->forward(inputs);
   } else {
     shortcut = inputs;
   }
+  return relu->forward({out[0]});
   return relu->forward({out[0] + shortcut[0]});
 }
 

@@ -99,7 +99,7 @@ Variable pool2d(
   // Network
   std::vector<primitive> network;
   // Reorder if needed
-  auto inputPrimDesc = primDesc.src_primitive_desc();
+  auto inputPrimDesc = primDesc.dst_primitive_desc();
   auto outputPrimDesc = primDesc.dst_primitive_desc();
   auto inputMemory =
       detail::mkldnnAlignOrdering(network, inputMemoryInit, inputPrimDesc);
