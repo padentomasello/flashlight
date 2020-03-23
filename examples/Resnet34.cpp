@@ -122,7 +122,7 @@ int main(int argc, const char** argv) {
   /////////////////////////
   // Hyperparaters
   ////////////////////////
-  const int batch_size = 128;
+  const int batch_size = 256;
   const float learning_rate = 0.1f;
   const float momentum = 0.9f;
   const float weight_decay = 0.0001f;
@@ -145,7 +145,7 @@ int main(int argc, const char** argv) {
   af::setSeed(world_size);
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0 / world_size * 2, // Account for batch size being 128 instead of 256
+      1.0, // Account for batch size being 128 instead of 256
       true,
       true);
 #endif
@@ -175,14 +175,14 @@ int main(int argc, const char** argv) {
       ImageDataset::normalizeImage(mean, std)
   };
   const int64_t prefetch_threads = 10;
-  const int64_t prefetch_size = batch_size;
+  const int64_t prefetch_size = (batch_size / world_size) * 3;
   auto test = std::make_shared<ImageDataset>(
           imagenetDataset(train_list, labels, train_transforms));
   auto train_ds = DistributedDataset(
       test,
       world_rank,
       world_size,
-      batch_size,
+      batch_size / world_size,
       prefetch_threads,
       prefetch_size);
 
@@ -300,7 +300,7 @@ int main(int argc, const char** argv) {
       if (++idx % 50 == 0) {
         //af::deviceGC();
         double time = time_meter.value();
-        double sample_per_second = (idx * batch_size * world_size) / time;
+        double sample_per_second = (idx * batch_size) / time;
         std::cout << "Epoch " << e << std::setprecision(5) << " Batch: " << idx
                   << " Samples per second " << sample_per_second
                   << ": Avg Train Loss: " << train_loss
