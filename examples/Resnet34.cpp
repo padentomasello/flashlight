@@ -118,7 +118,8 @@ int main(int argc, const char** argv) {
   /////////////////////////
   // Hyperparaters
   ////////////////////////
-  const int batch_size = 256;
+  //const int batch_size = 256;
+  const int miniBatchSize = 128;
   const float learning_rate = 0.1f;
   const float momentum = 0.9f;
   const float weight_decay = 0.0001f;
@@ -170,7 +171,7 @@ int main(int argc, const char** argv) {
       ImageDataset::centerCrop(224),
       ImageDataset::normalizeImage(mean, std)
   };
-  const uint64_t miniBatchSize = batch_size / world_size;
+  //const uint64_t miniBatchSize = batch_size / world_size;
   const int64_t prefetch_threads = 10;
   const int64_t prefetch_size = miniBatchSize * 2;
   auto test = std::make_shared<ImageDataset>(
@@ -296,7 +297,7 @@ int main(int argc, const char** argv) {
       double train_loss = train_loss_meter.value()[0];
       if (++idx % 50 == 0) {
         double time = time_meter.value();
-        double sample_per_second = (idx * batch_size) / time;
+        double sample_per_second = (idx * miniBatchSize*world_size) / time;
         std::cout << "Epoch " << e << std::setprecision(5) << " Batch: " << idx
                   << " Samples per second " << sample_per_second
                   << ": Avg Train Loss: " << train_loss
