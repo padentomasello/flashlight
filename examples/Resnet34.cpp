@@ -141,7 +141,7 @@ int main(int argc, const char** argv) {
   af::setSeed(world_size);
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0 / world_size,
+      1.0,
       true,
       true);
 #endif
