@@ -21,7 +21,7 @@
 #include "flashlight/nn/nn.h"
 #include "flashlight/optim/optim.h"
 
-#define DISTRIBUTED 1
+#define DISTRIBUTED 0
 
 using namespace fl;
 
@@ -158,12 +158,11 @@ int main(int argc, const char** argv) {
   std::vector<Dataset::TransformFunction> train_transforms = {
       // randomly resize shortest side of image between 256 to 480 for scale
       // invariance
-      //ImageDataset::randomResizeTransform(256, 480),
-      ImageDataset::resizeTransform(256),
+      ImageDataset::randomResizeTransform(256, 480),
       ImageDataset::randomCropTransform(224, 224),
-      ImageDataset::normalizeImage(mean, std),
+      ImageDataset::horizontalFlipTransform(0.5),
+      ImageDataset::normalizeImage(mean, std)
       // Randomly flip image with probability of 0.5
-      ImageDataset::horizontalFlipTransform(0.5)
   };
   std::vector<Dataset::TransformFunction> val_transforms = {
       // Resize shortest side to 256, then take a center crop
