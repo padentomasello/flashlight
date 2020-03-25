@@ -65,25 +65,26 @@ af::array resizeSmallest(const af::array in, const int resize) {
  * numnber of channels to create an array with 3 channels
  */
 af::array loadJpeg(const std::string& fp) {
-#if 0
-  af::array img;
-  try {
-    //return af::loadImage(fp.c_str(), true);
-    img = af::loadImageNative(fp.c_str());
-  } catch (...){
-    img = af::constant(0, 224, 244, 3);
-    std::cout << "Filepath " << fp << std::endl;
-  }
-  if(img.type() != u8) {
-    std::cout << img.type() << std::endl;
-  }
-  if (img.dims(2) == 3) {
-    return img;
-  } else if (img.dims(2) == 1) {
-    img = af::tile(img, 2, 3);
-    auto img2 = af::colorSpace(img, AF_RGB, AF_GRAY);
-    return img2;
-  }
+#if 1
+  return af::loadImage(fp.c_str(), true);
+  //af::array img;
+  //try {
+    ////return af::loadImage(fp.c_str(), true);
+    //img = af::loadImageNative(fp.c_str());
+  //} catch (...){
+    //img = af::constant(0, 224, 244, 3);
+    //std::cout << "Filepath " << fp << std::endl;
+  //}
+  //if(img.type() != u8) {
+    //std::cout << img.type() << std::endl;
+  //}
+  //if (img.dims(2) == 3) {
+    //return img;
+  //} else if (img.dims(2) == 1) {
+    //img = af::tile(img, 2, 3);
+    //auto img2 = af::colorSpace(img, AF_RGB, AF_GRAY);
+    //return img2;
+  //}
 #else
 	int w, h, c;
   // STB image will automatically return desired_no_channels.
