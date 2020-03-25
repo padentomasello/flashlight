@@ -158,7 +158,8 @@ int main(int argc, const char** argv) {
   std::vector<Dataset::TransformFunction> train_transforms = {
       // randomly resize shortest side of image between 256 to 480 for scale
       // invariance
-      ImageDataset::randomResizeTransform(256, 480),
+      //ImageDataset::randomResizeTransform(256, 480),
+      ImageDataset::resizeTransform(256),
       ImageDataset::randomCropTransform(224, 224),
       ImageDataset::normalizeImage(mean, std),
       // Randomly flip image with probability of 0.5

@@ -210,7 +210,7 @@ Dataset::TransformFunction ImageDataset::randomCropTransform(
   const int x = rand() % (w - tw + 1);
 	const int y = rand() % (h - th + 1);
 	out = out(
-  af::seq(x, x + tw - 1), af::seq(y, y + th - 1), af::span, af::span);
+  af::seq(x, x + tw), af::seq(y, y + th), af::span, af::span);
   return out;
   };
 };
