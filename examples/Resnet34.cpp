@@ -21,7 +21,7 @@
 #include "flashlight/nn/nn.h"
 #include "flashlight/optim/optim.h"
 
-#define DISTRIBUTED 0
+#define DISTRIBUTED 1
 
 using namespace fl;
 
