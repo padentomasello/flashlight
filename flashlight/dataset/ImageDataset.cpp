@@ -140,7 +140,7 @@ af::array loadJpeg(const std::string& fp) {
 }
 
 af::array loadLabel(const uint64_t x) {
-  return af::constant(x, 1, 1, 1, 1, u64);
+  return af::constant(x, 1, u64);
 }
 
 }

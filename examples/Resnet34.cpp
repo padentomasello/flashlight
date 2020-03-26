@@ -198,7 +198,7 @@ int main(int argc, const char** argv) {
   // synchronize parameters of tje model so that the parameters in each process
   // is the same
 
-  SGDOptimizer opt(model->params(), learning_rate, momentum, weight_decay);
+  SGDOptimizer opt(model->params(), learning_rate, momentum, weight_decay, true);
 
   auto lrScheduler = [&opt, &learning_rate](int epoch) {
     // Adjust learning rate every 30 epoch
@@ -302,11 +302,13 @@ int main(int argc, const char** argv) {
         af::array top1_arr = af::array(1, &top1);
         af::array top5_arr = af::array(1, &top5);
         af::array samples_per_second_arr = af::array(1, &sample_per_second);
+#if DISTRIBUTED
         std::vector<af::array*> metric_arrays = {
           &train_loss_arr, &top1_arr, &top5_arr, &samples_per_second_arr
         };
         fl::allReduceMultiple(metric_arrays, false, false);
-        if (world_rank == 0) {
+#endif
+        if (world_rank == 0 || !DISTRIBUTED) {
           std::cout << "Epoch " << e << std::setprecision(5) << " Batch: " << idx
                     << " Samples per second " << samples_per_second_arr.scalar<double>()
                     << ": Avg Train Loss: " << train_loss_arr.scalar<double>() / world_size
