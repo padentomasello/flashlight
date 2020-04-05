@@ -74,15 +74,18 @@ ConvBnAct::ConvBnAct(
 BasicBlock::BasicBlock() = default;
 
 BasicBlock::BasicBlock(const int in_c, const int out_c, const int stride) {
-  if (in_c != out_c || stride == 2) {
-    downsample_ = std::make_shared<ConvBnAct>(in_c, out_c, 1, 1, stride, stride, true, false);
-  }
   add(std::make_shared<Conv2D>(conv3x3(in_c, out_c, stride, 1)));
   add(std::make_shared<BatchNorm>(batchNorm(out_c)));
   add(std::make_shared<ReLU>());
   add(std::make_shared<Conv2D>(conv3x3(out_c, out_c, 1, 1)));
   add(std::make_shared<BatchNorm>(batchNorm(out_c)));
   add(std::make_shared<ReLU>());
+  if (in_c != out_c || stride == 2) {
+    add(ConvBnAct(in_c, out_c, 1, 1, stride, stride, true, false));
+  }
+  //add(std::make_shared<ConvBnAct>(in_c, out_c, 3, 3, stride, stride));
+  //add(std::make_shared<ConvBnAct>(out_c, out_c, 3, 3, 1, 1, true, false));
+  //add(std::make_shared<ReLU>());
 }
 
 std::vector<fl::Variable> BasicBlock::forward(
@@ -101,8 +104,8 @@ std::vector<fl::Variable> BasicBlock::forward(
   out = bn2->forward(out);
 
   std::vector<fl::Variable> shortcut;
-  if (downsample_) {
-    shortcut = downsample_->forward(inputs);
+  if (modules().size() > 6) {
+    shortcut = module(6)->forward(inputs);
   } else {
     shortcut = inputs;
   }
