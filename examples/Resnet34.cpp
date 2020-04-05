@@ -20,7 +20,7 @@
 #include "flashlight/nn/nn.h"
 #include "flashlight/optim/optim.h"
 
-#define DISTRIBUTED 0
+#define DISTRIBUTED 1
 
 using namespace fl;
 
@@ -104,7 +104,7 @@ int main(int argc, const char** argv) {
 
   int world_rank = argc > 2 ? atoi(argv[2]) : 0;
   int world_size = argc > 3 ? atoi(argv[3]) : 1;
-  int miniBatchSize = argc > 4 ? atoi(argv[4]) : 32;
+  int miniBatchSize = argc > 4 ? atoi(argv[4]) : 256;
   af::setDevice(world_rank);
   if (world_size > 1 && !DISTRIBUTED) {
     std::cout << "Not built for distributed!" << std::endl;
@@ -120,6 +120,7 @@ int main(int argc, const char** argv) {
   ////////////////////////
   //const int batch_size = 256;
   //const int miniBatchSize = 128;
+  const int batchSizePerGpu = miniBatchSize / world_size;
   const float learning_rate = 0.1f;
   const float momentum = 0.9f;
   const float weight_decay = 0.0001f;
@@ -171,16 +172,15 @@ int main(int argc, const char** argv) {
       ImageDataset::normalizeImage(mean, std)
   };
   //const uint64_t miniBatchSize = batch_size / world_size;
-  const int batch_size = miniBatchSize * world_size;
   const int64_t prefetch_threads = 10;
-  const int64_t prefetch_size = miniBatchSize;
+  const int64_t prefetch_size = batchSizePerGpu;
   auto test = std::make_shared<ImageDataset>(
           imagenetDataset(train_list, labels, train_transforms));
   auto train_ds = DistributedDataset(
       test,
       world_rank,
       world_size,
-      miniBatchSize,
+      batchSizePerGpu,
       prefetch_threads,
       prefetch_size);
 
@@ -189,7 +189,7 @@ int main(int argc, const char** argv) {
           imagenetDataset(val_list, labels, val_transforms)),
       world_rank,
       world_size,
-      miniBatchSize,
+      batchSizePerGpu,
       prefetch_threads,
       prefetch_size);
 
