@@ -150,12 +150,15 @@ int main(int argc, char** argv) {
   ////////////////////////
   af::info();
   fl::distributedInit(
-	fl::DistributedInit::FILE_SYSTEM,
-	FLAGS_world_rank,
-	FLAGS_world_size,
-	{{fl::DistributedConstants::kMaxDevicePerNode,
-	  std::to_string(8)},
-	 {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+    fl::DistributedInit::FILE_SYSTEM,
+    FLAGS_world_rank,
+    FLAGS_world_size,
+    {{fl::DistributedConstants::kMaxDevicePerNode,
+      std::to_string(8)},
+     {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+  std::cout << " Initialized from id " << FLAGS_world_rank << FLAGS_world_size << std::endl;
+  std::cout << "Test " << fl::getWorldRank();
+  std::cout << "Test " << fl::getWorldSize();
 
   af::setSeed(FLAGS_world_size);
 
@@ -225,19 +228,19 @@ int main(int argc, char** argv) {
   };
 
   // Small utility function to save models
-  std::string checkpointPrefix = "/private/home/padentomasello/code/flashlight/build/model-";
-  auto saveModel = [&model, &checkpointPrefix](int epoch) {
-    if(FLAGS_world_rank == 0) {
-      std::string modelPath = FLAGS_checkpointpath + std::to_string(epoch);
-      std::cout <<  "Saving model to file: " << modelPath << std::endl;
-      fl::save(modelPath, model);
-    }
-  };
+  //std::string checkpointPrefix = "/private/home/padentomasello/code/flashlight/build/model-";
+  //auto saveModel = [&model, &checkpointPrefix](int epoch) {
+    //if(FLAGS_world_rank == 0) {
+      //std::string modelPath = FLAGS_checkpointpath + std::to_string(epoch);
+      //std::cout <<  "Saving model to file: " << modelPath << std::endl;
+      //fl::save(modelPath, model);
+    //}
+  //};
 
-  if (FLAGS_checkpoint >= 0) {
-    std::string modelPath = checkpointPrefix + std::to_string(FLAGS_checkpoint);
-    fl::load(modelPath, model);
-  }
+  //if (FLAGS_checkpoint >= 0) {
+    //std::string modelPath = checkpointPrefix + std::to_string(FLAGS_checkpoint);
+    //fl::load(modelPath, model);
+  //}
 
   fl::allReduceParameters(model);
 
