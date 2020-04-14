@@ -145,8 +145,8 @@ int main(int argc, char** argv) {
   const std::string train_list = FLAGS_data_dir + "train";
   const std::string val_list = FLAGS_data_dir + "val";
 
-  //const int world_rank = FLAGS_world_rank;
-  //const int world_size = FLAGS_world_size;
+  const int world_rank = FLAGS_world_rank;
+  const int world_size = FLAGS_world_size;
 
   /////////////////////////
   // Setup distributed training
@@ -158,8 +158,20 @@ int main(int argc, char** argv) {
 	FLAGS_world_size,
 	{{fl::DistributedConstants::kMaxDevicePerNode,
 	  std::to_string(8)},
-	 {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+	 {fl::DistributedConstants::kFilePath, "/checkpoint/padentomasello/tmp/" + std::to_string(world_size)}});
+  std::cout << "Test " << fl::getWorldRank();
+  std::cout << "Test " << fl::getWorldSize();
   af::info();
+  //fl::distributedInit(
+    //fl::DistributedInit::FILE_SYSTEM,
+    //FLAGS_world_rank,
+    //FLAGS_world_size,
+    //{{fl::DistributedConstants::kMaxDevicePerNode,
+      //std::to_string(8)},
+     //{fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+  std::cout << " Initialized from id " << FLAGS_world_rank << FLAGS_world_size << std::endl;
+  std::cout << "Test " << fl::getWorldRank();
+  std::cout << "Test " << fl::getWorldSize();
 
   af::setSeed(FLAGS_world_size);
 
