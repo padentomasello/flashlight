@@ -32,7 +32,7 @@ DEFINE_uint64(world_size, 1, "Epochs");
 DEFINE_uint64(batch_size, 32, "Epochs");
 
 
-#define DISTRIBUTED 0
+#define DISTRIBUTED 1
 
 #define TRAIN 0
 #define CACHE 0
