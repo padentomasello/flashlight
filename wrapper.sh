@@ -12,8 +12,8 @@ set -x
 echo $SLURMD_NODENAME $SLURM_JOB_ID $CUDA_VISIBLE_DEVICES
 echo $SLURM_NTASKS
 echo $SLURM_LOCALID
-rm /tmp/rndv/
 mkdir -p /tmp/rndv
+rm /tmp/rndv/10210577316483720853
 BUILD_DIR=/scratch/slurm_tmpdir/$SLURM_JOB_ID/$1
 AF_MAX_BUFFERS=3000 $BUILD_DIR/flashlight/build/examples/Resnet34 --world_rank $SLURM_LOCALID --world_size $SLURM_NTASKS --rndv_filepath /tmp/rndv/
 
