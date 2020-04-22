@@ -8,18 +8,61 @@ namespace {
 Conv2D conv3x3(const int in_c, const int out_c, const int stride,
     const int groups) {
   const auto pad = PaddingMode::SAME;
-  return Conv2D(in_c, out_c, 3, 3, stride, stride, pad, pad, 1, 1, false);
+  auto conv = Conv2D(in_c, out_c, 3, 3, stride, stride, pad, pad, 1, 1, false, groups);
+  const int fanOut = out_c * 3 * 3;
+  const float gain = std::sqrt(2.f);
+  conv.setParams(
+      kaimingNormal(af::dim4(3, 3, in_c / groups, out_c), fanOut, gain),
+  0);
+  return conv;
 }
 
 Conv2D conv1x1(const int in_c, const int out_c, const int stride,
     const int groups) {
   const auto pad = PaddingMode::SAME;
-  return Conv2D(in_c, out_c, 1, 1, stride, stride, pad, pad, 1, 1, false);
+  auto conv = Conv2D(in_c, out_c, 1, 1, stride, stride, pad, pad, 1, 1, false, groups);
+  const int fanOut = out_c * 1 * 1;
+  const float gain = std::sqrt(2.f);
+  conv.setParams(
+      kaimingNormal(af::dim4(1, 1, in_c / groups, out_c), fanOut, gain),
+  0);
+  return conv;
+}
+
+BatchNorm batchNorm(const int channels) {
+    auto bn = BatchNorm(2, channels);
+    bn.setParams(constant(1.0, channels, af::dtype::f32, true), 0);
+    bn.setParams(constant(0.0, channels, af::dtype::f32, true), 1);
+    return bn;
 }
 
 }
 
 ConvBnAct::ConvBnAct() = default;
+
+//Sequential convBnAct(
+      //const int in_c,
+      //const int out_c,
+      //const int kw,
+      //const int kh,
+      //const int sx ,
+      //const int sy,
+      //bool bn,
+      //bool act
+    //) {
+  //Sequential mod;
+  //const auto pad = PaddingMode::SAME;
+  //const bool bias = !bn;
+  //mod.add(std::make_shared<fl::Conv2D>(
+      //in_c, out_c, kw, kh, sx, sy, pad, pad, 1, 1, bias));
+  //if (bn) {
+    //mod.add(std::make_shared<fl::BatchNorm>(2, out_c));
+  //}
+  //if (act) {
+    //mod.add(std::make_shared<fl::ReLU>());
+  //}
+  //return mod;
+//}
 
 ConvBnAct::ConvBnAct(
     const int in_c,
@@ -32,10 +75,16 @@ ConvBnAct::ConvBnAct(
     bool act) {
   const auto pad = PaddingMode::SAME;
   const bool bias = !bn;
-  add(std::make_shared<fl::Conv2D>(
-      in_c, out_c, kw, kh, sx, sy, pad, pad, 1, 1, bias));
-  if (bn) {
-    add(std::make_shared<fl::BatchNorm>(2, out_c));
+
+  auto conv1 = Conv2D(in_c, out_c, kw, kh, sx, sy, pad, pad, 1, 1, bias);
+  const int fanOut = out_c * kw * kh;
+  const float gain = std::sqrt(2.f);
+  conv1.setParams(kaimingNormal(af::dim4(kw, kh, in_c, out_c), fanOut, gain), 0);
+  add(conv1); if (bn) {
+    auto bn = BatchNorm(2, out_c);
+    bn.setParams(constant(1.0, out_c, af::dtype::f32, true), 0);
+    bn.setParams(constant(0.0, out_c, af::dtype::f32, true), 1);
+    add(bn);
   }
   if (act) {
     add(std::make_shared<fl::ReLU>());
@@ -116,7 +165,13 @@ Sequential resnet34() {
   model.add(ResNetStage(256, 512, 3, 2));
   // pool 7x7x64 ->
   model.add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
-  model.add(ConvBnAct(512, 1000, 1, 1, 1, 1, false, false));
+  model.add(View({512, -1, 1, 0}));
+  auto linear = Linear(512, 1000, true);
+  const float alpha = 5.0f;
+  const float linearGain = std::sqrt(2.0 / (1 + alpha));
+  linear.setParams(
+      kaimingNormal(af::dim4(1000, 512), 512, linearGain), 0);
+  model.add(linear);
   model.add(View({1000, -1}));
   model.add(LogSoftmax());
   return model;
