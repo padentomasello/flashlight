@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
   af::setSeed(FLAGS_world_size);
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0 / FLAGS_world_size,
+      1.0,
       true,
       true);
 
