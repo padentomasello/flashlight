@@ -168,8 +168,10 @@ class TransformerBaseLayer : public Container {
       self_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
       w1_(std::make_shared<Linear>(transformerInitLinear(modelDim, mlpDim))),
       w2_(std::make_shared<Linear>(transformerInitLinear(mlpDim, modelDim))),
-      norm1_(std::make_shared<LayerNorm>(std::vector<int>({0, 3}))),
-      norm2_(std::make_shared<LayerNorm>(std::vector<int>({0, 3}))),
+      //norm1_(std::make_shared<LayerNorm>(std::vector<int>(1))),
+      //norm2_(std::make_shared<LayerNorm>(std::vector<int>(1))),
+      norm1_(std::make_shared<LayerNorm>(1)),
+      norm2_(std::make_shared<LayerNorm>(1)),
       pDropout_(pDropout)
       {
         add(self_attn_);
@@ -257,7 +259,7 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
       float pDropout) :
         TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout),
         encoder_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
-        norm3_(std::make_shared<LayerNorm>(std::vector<int>({0, 3})))
+        norm3_(std::make_shared<LayerNorm>(1))
         { };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -277,8 +279,8 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
     {
       auto tgt2 = (*norm2_)(tgt);
       tgt2 = encoder_attn_->forward({
-          tgt2, // queries
-          memory, // keys
+          this->withPosEmbed(tgt2, queryPos), // queries
+          this->withPosEmbed(memory, pos), // keys
           memory, // values
           memoryKeyPaddingMask // mask
           })[0];
@@ -413,6 +415,7 @@ std::vector<Variable> forward(
       assert(queryEmbed.dims(0) == src.dims(0));
 
       auto tgt = fl::Variable(af::constant(0, queryEmbed.dims()), false);
+      //auto tgt = queryEmbed;
 
       auto memory = encoder_->forward({
           src, 

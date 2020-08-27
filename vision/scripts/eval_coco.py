@@ -11,6 +11,10 @@ import box_ops
 import glob
 import os
 
+def convert_to_xywh(boxes):
+    xmin, ymin, xmax, ymax = boxes.unbind(1)
+    return torch.stack((xmin, ymin, xmax - xmin, ymax - ymin), dim=1)
+
 
 # from datasets.coco_eval import CocoEvaluator
 
@@ -44,6 +48,31 @@ class PostProcess(nn.Module):
 
         return results
 
+
+def prepare_for_coco_detection(predictions):
+        coco_results = []
+        for original_id, prediction in predictions.items():
+            if len(prediction) == 0:
+                continue
+
+            boxes = prediction["boxes"]
+            boxes = convert_to_xywh(boxes).tolist()
+            scores = prediction["scores"].tolist()
+            labels = prediction["labels"].tolist()
+
+            coco_results.extend(
+                [
+                    {
+                        "image_id": original_id,
+                        "category_id": labels[k],
+                        "bbox": box,
+                        "score": scores[k],
+                    }
+                    for k, box in enumerate(boxes)
+                ]
+            )
+        return coco_results
+
 class Args(object):
 
     coco_path = '/datasets01/COCO/022719'
@@ -54,10 +83,20 @@ def main(directory):
     args = Args()
 
     # dataset_val = build_coco(image_set='val', args=args)
-    dataset_val = build_coco(image_set='val', args=args)
-    base_ds = get_coco_api_from_dataset(dataset_val)
-    coco_evaluator = CocoEvaluator(base_ds, ('bbox',))
+    # dataset_val = build_coco(image_set='val', args=args)
+    # base_ds = get_coco_api_from_dataset(dataset_val)
+    # coco_evaluator = CocoEvaluator(base_ds, ('bbox',))
 
+    from pycocotools.cocoeval import COCOeval
+    from pycocotools.coco import COCO
+    dataDir='/datasets01/COCO/022719/'
+    dataType='val2017'
+    annFile='{}/annotations/instances_{}.json'.format(dataDir,dataType)
+    coco=COCO(annFile)
+
+
+    all_results = []
+    all_image_ids = []
     # imageIds = [f'/datasets01/COCO/022719/train2017/{id:012d}.jpg' for id in imageIds]
 
     postprocess = PostProcess();
@@ -75,15 +114,41 @@ def main(directory):
         bboxes = np.transpose(bboxes, (2, 1, 0))
         bboxes = torch.from_numpy(bboxes)
         results = postprocess.forward(scores, bboxes, imageSizes)
-        imageIds = [ id for id in imageIds ];
-        # print(imageIds)
 
         res = { id : output for id, output in zip(imageIds, results) };
-        coco_evaluator.update(res)
+        results = prepare_for_coco_detection(res)
 
-    coco_evaluator.synchronize_between_processes()
-    coco_evaluator.accumulate()
-    coco_evaluator.summarize()
+        imageIds = [ id for id in imageIds ];
+
+        all_results.extend(results)
+        all_image_ids.extend(imageIds)
+        break
+        # print(imageIds)
+
+    cocoDt = coco.loadRes(all_results)
+    cocoEval = COCOeval(coco, cocoDt, 'bbox')
+#cocoEval.params.imgIds  = [imageId]
+    cocoEval.params.imgIds  = all_image_ids
+    cocoEval.evaluate()
+    cocoEval.accumulate()
+    cocoEval.summarize()
+        # res = { id : output for id, output in zip(imageIds, results) };
+        # results = prepare_for_coco_detection(res)
+
+    # print(len(coco_evaluator.img_ids))
+    # print(len(coco_evaluator.eval_imgs))
+    # coco_evaluator.synchronize_between_processes()
+    # print(len(coco_evaluator.img_ids))
+    # print(len(coco_evaluator.eval_imgs))
+    # # coco_evaluator.coco_eval['bbox'].eval_imgs = imageIds
+    # coco_evaluator.coco_eval['bbox'].params.imgIds = all_ids
+    # # coco_evaluator.eval_imgs['bbox'] = imageIds;
+    # print(len(coco_evaluator.img_ids))
+    # print(len(coco_evaluator.eval_imgs))
+    # # coco_evaluator.evalImgs = all_ids
+    # # coco_evaluator.evalImgs = all_ids
+    # coco_evaluator.accumulate()
+    # coco_evaluator.summarize()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

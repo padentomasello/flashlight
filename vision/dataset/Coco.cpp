@@ -364,6 +364,7 @@ TransformAllFunction randomResize(
     auto output_size = getSize(originalImage, size, maxsize);
     const af::dim4 originalDims = originalImage.dims();
     const af::array resizedImage = af::resize(originalImage, output_size.first, output_size.second, AF_INTERP_BILINEAR);
+    //const af::array resizedImage = af::resize(originalImage, size, size, AF_INTERP_BILINEAR);
     const af::dim4 resizedDims = resizedImage.dims();
 
 
@@ -413,6 +414,7 @@ CocoDataset::CocoDataset(
 
   transformed = std::make_shared<TransformAllDataset>(
        transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
+       //transformed, randomResize({256}, 800));
 
   transformed = std::make_shared<TransformAllDataset>(
       transformed, Normalize);

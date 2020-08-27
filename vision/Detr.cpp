@@ -29,6 +29,7 @@ DEFINE_double(momentum, 0.9f, "Momentum");
 
 DEFINE_double(wd, 1e-4f, "Weight decay");
 DEFINE_uint64(epochs, 50, "Epochs");
+DEFINE_uint64(eval_ters, 10, "Epochs");
 DEFINE_int64(
     world_rank,
     0,
@@ -200,7 +201,7 @@ int main(int argc, char** argv) {
   const int32_t modelDim = 256;
   const int32_t numHeads = 8;
   const int32_t numEncoderLayers = 6;
-  const int32_t numDecoderLayers = 6;
+  const int32_t numDecoderLayers = 1;
   const int32_t mlpDim = 2048;
   // TODO check this is correct
   const int32_t hiddenDim = modelDim;
@@ -306,6 +307,9 @@ int main(int argc, char** argv) {
       << "/private/home/padentomasello/code/flashlight/vision/scripts/eval_coco.py --dir "
       << FLAGS_eval_dir;
     system(ss.str().c_str());
+    std::stringstream ss2;
+    ss2 << "rm -rf " << FLAGS_eval_dir;
+    system(ss2.str().c_str());
     backbone->train();
     model->train();
   };
@@ -442,7 +446,7 @@ int main(int argc, char** argv) {
       //////////////////////////
       // Metrics
       /////////////////////////
-      if(++idx % 10 == 0) {
+      if(++idx % 5 == 0) {
         double total_time = timers["total"].value();
         double sample_per_second = (idx * FLAGS_batch_size * FLAGS_world_size) / total_time;
         double forward_time = timers["forward"].value();
@@ -467,7 +471,7 @@ int main(int argc, char** argv) {
     for(auto meter : meters) {
       meter.second.reset();
     }
-      if(e % 10 == 0 && e > 0) {
+      if(e % FLAGS_eval_iters == 0 && e > 0) {
         eval_loop(backbone, detr, val_ds);
         //eval_loop(detr, val_ds);
         //saveModel(e);
