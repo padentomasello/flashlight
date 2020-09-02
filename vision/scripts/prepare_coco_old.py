@@ -46,8 +46,8 @@ def create_training_list(img_folder, ann_file, output_file):
             out.write(" ".join(strings))
             out.write('\n')
             i += 1
-            # if i == 1280:
-                # break;
+            if i == 128:
+                break;
 
 # def dump_dataset(image_set, image_folder, args):
     # dataset = build_dataset(image_set, args);
