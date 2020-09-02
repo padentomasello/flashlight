@@ -1,9 +1,23 @@
 #pragma once
 
+#include <iostream>
+
 #include "models/Resnet.h"
 
 namespace fl {
 namespace cv {
+
+// TODO HACK!!!!!!
+void freezeBatchNorm(std::shared_ptr<fl::Module> ptr) {
+  std::cout << "Freezing " << ptr->prettyString() << std::endl;
+  if(dynamic_cast<fl::BatchNorm*>(ptr.get())) {
+    ptr->eval();
+  } else if(dynamic_cast<fl::Container*>(ptr.get())) {
+      for(auto mod : dynamic_cast<fl::Container*>(ptr.get())->modules()) {
+        freezeBatchNorm(mod);
+      }
+  }
+}
 
 //class Joiner: public Container {
 

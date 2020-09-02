@@ -220,6 +220,7 @@ int main(int argc, char** argv) {
   //backbone = std::make_shared<Sequential>(resnet34());
   std::string modelPath = "/checkpoint/padentomasello/models/resnet34backbone49";
   fl::load(modelPath, backbone);
+  //freezeBatchNorm(backbone);
   backbone->eval();
   auto transformer = std::make_shared<Transformer>(
       modelDim,
