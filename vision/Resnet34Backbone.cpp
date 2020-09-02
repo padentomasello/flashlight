@@ -22,7 +22,7 @@ DEFINE_double(lr, 0.1f, "Learning rate");
 DEFINE_double(momentum, 0.9f, "Momentum");
 
 DEFINE_double(wd, 1e-4f, "Weight decay");
-DEFINE_uint64(epochs, 50, "Epochs");
+DEFINE_uint64(epochs, 300, "Epochs");
 DEFINE_int64(
     world_rank,
     0,

@@ -170,8 +170,10 @@ class TransformerBaseLayer : public Container {
       w2_(std::make_shared<Linear>(transformerInitLinear(mlpDim, modelDim))),
       //norm1_(std::make_shared<LayerNorm>(std::vector<int>(1))),
       //norm2_(std::make_shared<LayerNorm>(std::vector<int>(1))),
-      norm1_(std::make_shared<LayerNorm>(1)),
-      norm2_(std::make_shared<LayerNorm>(1)),
+      //norm1_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim)),
+      //norm2_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim)),
+      norm1_(std::make_shared<LayerNorm>(0, 1e-5, true)),
+      norm2_(std::make_shared<LayerNorm>(0, 1e-5, true)),
       pDropout_(pDropout)
       {
         add(self_attn_);
@@ -230,12 +232,14 @@ class TransformerEncoderLayer : public TransformerBaseLayer {
     auto pos = input[2];
     // Self Attention
     {
+      //std::cout << "her1 " << src.dims() << std::endl;
       auto src2 = (*norm1_)(src);
       src2 = this->selfAttention(src, pos, mask);
       src = src + dropout(src2, pDropout_);
     }
     // MLP
     {
+      //std::cout << "her2 " << src.dims() << std::endl;
       auto src2 = norm2_->forward(src);
       src2 = mlp(src2);
       src = src + dropout(src2, pDropout_);
@@ -259,7 +263,8 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
       float pDropout) :
         TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout),
         encoder_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
-        norm3_(std::make_shared<LayerNorm>(1))
+        //norm3_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim))
+        norm3_(std::make_shared<LayerNorm>(0, 1e-5, true))
         { };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -271,12 +276,14 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
       auto memoryKeyPaddingMask = input[4];
     // Self attention
     {
+      ////std::cout << " dec " << tgt.dims() << std::endl;
       auto tgt2 = (*norm1_)(tgt);
       tgt2 = this->selfAttention(tgt2, queryPos);
       tgt = tgt + dropout(tgt2, pDropout_);
     }
     // Encoder-decoder attention
     {
+      //std::cout << " dec2 " << tgt.dims() << std::endl;
       auto tgt2 = (*norm2_)(tgt);
       tgt2 = encoder_attn_->forward({
           this->withPosEmbed(tgt2, queryPos), // queries
@@ -289,6 +296,7 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
     }
     // MLP
     {
+      //std::cout << " dec3 " << tgt.dims() << std::endl;
       auto tgt2 = (*norm3_)(tgt);
       tgt2 = mlp(tgt2);
       tgt = tgt + tgt2;

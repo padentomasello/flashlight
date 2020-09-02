@@ -71,6 +71,9 @@ public:
   ~BatchTransformDataset() {};
 
   T get(const int64_t idx) {
+    if (!(idx >= 0 && idx < size())) {
+      throw std::out_of_range("Dataset idx out of range");
+    }
     //dataset_->checkIndexBounds(idx);
     std::vector<std::vector<af::array>> buffer;
 

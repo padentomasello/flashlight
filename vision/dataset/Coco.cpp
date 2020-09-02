@@ -112,7 +112,11 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
     maxW = std::max(w, maxW);
     maxH = std::max(h, maxH);
   }
-
+  //// TODO TESTING!!!!!!!!
+  //// TODO 
+  //// TODO
+  //maxW = 480;
+  //maxH = 480; 
   af::dim4 dims = { maxW, maxH, 3, static_cast<long>(data.size()) };
   af::dim4 maskDims = { maxW, maxH, 1, static_cast<long>(data.size()) };
 
@@ -436,7 +440,7 @@ CocoDataset::CocoDataset(
   auto prefetch = std::make_shared<PrefetchDataset>(sampled, num_threads, prefetch_size);
   //auto prefetch = sampled;
   batched_ = std::make_shared<BatchTransformDataset<CocoData>>(
-      prefetch, batch_size, BatchDatasetPolicy::INCLUDE_LAST, cocoBatchFunc);
+      prefetch, batch_size, BatchDatasetPolicy::SKIP_LAST, cocoBatchFunc);
 
 }
 

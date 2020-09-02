@@ -27,6 +27,9 @@ def create_training_list(img_folder, ann_file, output_file):
             boxes[:, 1::2].clamp_(min=0, max=h)
             keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
             boxes = boxes[keep]
+            if len(boxes) == 0:
+                print('no boxes!')
+                continue
             # import pdb; pdb.set_trace()
             labels = labels[keep]
             labels = labels.tolist()
@@ -43,8 +46,8 @@ def create_training_list(img_folder, ann_file, output_file):
             out.write(" ".join(strings))
             out.write('\n')
             i += 1
-            if i == 128:
-                break;
+            # if i == 1280:
+                # break;
 
 # def dump_dataset(image_set, image_folder, args):
     # dataset = build_dataset(image_set, args);

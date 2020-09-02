@@ -29,7 +29,7 @@ DEFINE_double(momentum, 0.9f, "Momentum");
 
 DEFINE_double(wd, 1e-4f, "Weight decay");
 DEFINE_uint64(epochs, 50, "Epochs");
-DEFINE_uint64(eval_ters, 10, "Epochs");
+DEFINE_uint64(eval_iters, 1, "Epochs");
 DEFINE_int64(
     world_rank,
     0,
@@ -55,7 +55,7 @@ using namespace fl::cv;
 using namespace cv::dataset;
 
 // TODO Refactor
-const int32_t backboneChannels = 512;
+//const int32_t backboneChannels = 512;
 
 class MLP : public Sequential {
 
@@ -146,6 +146,12 @@ private:
 };
 
 int main(int argc, char** argv) {
+  std::stringstream ss;
+  ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
+    //<< "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH "
+    << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
+    << "-c 'import arrayfire as af'";
+  system(ss.str().c_str());
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -214,6 +220,7 @@ int main(int argc, char** argv) {
   //backbone = std::make_shared<Sequential>(resnet34());
   std::string modelPath = "/checkpoint/padentomasello/models/resnet34backbone49";
   fl::load(modelPath, backbone);
+  backbone->eval();
   auto transformer = std::make_shared<Transformer>(
       modelDim,
       numHeads,
@@ -303,14 +310,15 @@ int main(int argc, char** argv) {
     }
     std::stringstream ss;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
+      //<< "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH "
       << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
       << "/private/home/padentomasello/code/flashlight/vision/scripts/eval_coco.py --dir "
       << FLAGS_eval_dir;
     system(ss.str().c_str());
     std::stringstream ss2;
-    ss2 << "rm -rf " << FLAGS_eval_dir;
+    ss2 << "rm -rf " << FLAGS_eval_dir << "/detection*";
     system(ss2.str().c_str());
-    backbone->train();
+    //backbone->train();
     model->train();
   };
 
@@ -341,7 +349,7 @@ int main(int argc, char** argv) {
       batch_size_per_gpu);
   //SGDOptimizer opt(detr.params(), FLAGS_lr, FLAGS_momentum, FLAGS_wd);
   AdamOptimizer opt(detr->params(), FLAGS_lr);
-  AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1);
+  //AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1);
   //AdamOptimizer backbone_opt(backbone->params(), FLAGS_lr * 0.1);
 
   // Small utility functions to load and save models
@@ -361,7 +369,6 @@ int main(int argc, char** argv) {
   //if (FLAGS_checkpoint >= 0) {
     //loadModel(FLAGS_checkpoint);
   //}
-
 
   auto weightDict = criterion.getWeightDict();
   for(int e = 0; e < FLAGS_epochs; e++) {
@@ -438,11 +445,12 @@ int main(int argc, char** argv) {
       timers["backward"].stop();
 
       reducer->finalize();
+      fl::clipGradNorm(detr->params(), 0.1);
       opt.step();
-      opt2.step();
+      //opt2.step();
 
       opt.zeroGrad();
-      opt2.zeroGrad();
+      //opt2.zeroGrad();
       //////////////////////////
       // Metrics
       /////////////////////////

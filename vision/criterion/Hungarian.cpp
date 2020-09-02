@@ -8,6 +8,7 @@ namespace {
 
 std::pair<af::array, af::array> hungarian(af::array& cost) {
     cost = cost.T();
+    //af_print(cost);
     const int M = cost.dims(0);
     const int N = cost.dims(1);
     std::vector<float> costHost(cost.elements());
