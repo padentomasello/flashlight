@@ -170,10 +170,10 @@ class TransformerBaseLayer : public Container {
       w2_(std::make_shared<Linear>(transformerInitLinear(mlpDim, modelDim))),
       //norm1_(std::make_shared<LayerNorm>(std::vector<int>(1))),
       //norm2_(std::make_shared<LayerNorm>(std::vector<int>(1))),
-      //norm1_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim)),
-      //norm2_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim)),
-      norm1_(std::make_shared<LayerNorm>(0, 1e-5, true)),
-      norm2_(std::make_shared<LayerNorm>(0, 1e-5, true)),
+      //norm1_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim)),
+      //norm2_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim)),
+      norm1_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true)),
+      norm2_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true)),
       pDropout_(pDropout)
       {
         add(self_attn_);
@@ -263,8 +263,8 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
       float pDropout) :
         TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout),
         encoder_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
-        //norm3_(std::make_shared<LayerNorm>(0, 1e-5, true, modelDim))
-        norm3_(std::make_shared<LayerNorm>(0, 1e-5, true))
+        //norm3_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
+        norm3_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true))
         { };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -327,6 +327,8 @@ class TransformerDecoder : public Container {
       for(int i = 0; i < layers; i++) {
         add(TransformerDecoderLayer(modelDim, headDim, mlpDim, nHeads, pDropout));
       }
+      //add(LayerNorm(0, 1e-3, true, modelDim));
+      add(LayerNorm(std::vector<int>{0}, 1e-5, true));
     }
 
     std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -337,10 +339,12 @@ class TransformerDecoder : public Container {
       auto query_pos = (input.size() > 3) ? input[3] : Variable();
       auto mask = (input.size() > 4) ? input[4] : Variable();
 
-      auto output = tgt;
-      for(auto mod : modules()) {
-        output = mod->forward({output, memory, pos, query_pos, mask})[0];
+      fl::Variable output = tgt;
+      auto mods = modules();
+      for(int i = 0; i < mods.size() - 1; i++) {
+        output = mods[i]->forward({output, memory, pos, query_pos, mask})[0];
       }
+      output = mods.back()->forward({output})[0];
       return { output };
     }
   std::string prettyString() const override {
@@ -356,24 +360,30 @@ class TransformerEncoder : public Container {
       int32_t mlpDim,
       int32_t nHeads,
       int32_t layers,
-      float pDropout) {
-      // TODO add norm
+      float pDropout) :
+        //norm_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
+        norm_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true))
+    {
       for(int i = 0; i < layers; i++) {
         add(TransformerEncoderLayer(modelDim, headDim, mlpDim, nHeads, pDropout));
       }
+      add(norm_);
     }
 
     std::vector<Variable> forward(const std::vector<Variable>& input) override {
-      auto output = input;
-      for(auto mod : modules_) {
-        output = mod->forward(output);
+      std::vector<Variable> output = input;
+      auto mods = modules();
+      for(int i = 0; i < mods.size() - 1; i++) {
+        output = mods[i]->forward(output);
       }
-      return output;
+      return { norm_->forward(output[0]) };
     }
 
     std::string prettyString() const override {
       return "TransformerDecoder";
     }
+private:
+    std::shared_ptr<LayerNorm> norm_;
 };
 
 class Transformer : public Container {

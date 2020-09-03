@@ -18,6 +18,7 @@ endif()
 
 
 function(build_test SRCFILE)
+  message(STATUS "Building tests " ${SRCFILE})
   get_filename_component(src_name ${SRCFILE} NAME_WE)
   set(target "${src_name}")
   add_executable(${target} ${SRCFILE})
@@ -41,6 +42,7 @@ endfunction(build_test)
 
 set(FLASHLIGHT_TEST_DIR ${CMAKE_SOURCE_DIR}/tests)
 if (FL_BUILD_TESTS)
+
   build_test(${FLASHLIGHT_TEST_DIR}/autograd/AutogradTest.cpp)
   build_test(${FLASHLIGHT_TEST_DIR}/common/DevicePtrTest.cpp)
   build_test(${FLASHLIGHT_TEST_DIR}/common/HistogramTest.cpp)

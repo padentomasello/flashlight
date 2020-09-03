@@ -220,8 +220,8 @@ int main(int argc, char** argv) {
   //backbone = std::make_shared<Sequential>(resnet34());
   std::string modelPath = "/checkpoint/padentomasello/models/resnet34backbone49";
   fl::load(modelPath, backbone);
-  //freezeBatchNorm(backbone);
-  backbone->eval();
+  freezeBatchNorm(backbone);
+  //backbone->eval();
   auto transformer = std::make_shared<Transformer>(
       modelDim,
       numHeads,
@@ -319,7 +319,8 @@ int main(int argc, char** argv) {
     std::stringstream ss2;
     ss2 << "rm -rf " << FLAGS_eval_dir << "/detection*";
     system(ss2.str().c_str());
-    //backbone->train();
+    backbone->train();
+    freezeBatchNorm(backbone);
     model->train();
   };
 
@@ -350,7 +351,7 @@ int main(int argc, char** argv) {
       batch_size_per_gpu);
   //SGDOptimizer opt(detr.params(), FLAGS_lr, FLAGS_momentum, FLAGS_wd);
   AdamOptimizer opt(detr->params(), FLAGS_lr, FLAGS_wd);
-  //AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1);
+  AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1, FLAGS_wd);
   //AdamOptimizer backbone_opt(backbone->params(), FLAGS_lr * 0.1);
 
   // Small utility functions to load and save models
@@ -448,10 +449,10 @@ int main(int argc, char** argv) {
       reducer->finalize();
       fl::clipGradNorm(detr->params(), 0.1);
       opt.step();
-      //opt2.step();
+      opt2.step();
 
       opt.zeroGrad();
-      //opt2.zeroGrad();
+      opt2.zeroGrad();
       //////////////////////////
       // Metrics
       /////////////////////////

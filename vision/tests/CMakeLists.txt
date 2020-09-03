@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5.1)
 
 # Download and build googletest
-include(${CMAKE_MODULE_PATH}/BuildGoogleTest.cmake)
+#include(${CMAKE_MODULE_PATH}/BuildGoogleTest.cmake)
 #if (
 message(STATUS "Building tests HERE " ${GTEST_LIBRARIES})
 
