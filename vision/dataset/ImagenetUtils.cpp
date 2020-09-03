@@ -40,7 +40,8 @@ std::vector<uint64_t> labelTargets(
   auto getLabelTargets = [&labelMap](const std::string& s) {
     const std::string label = labelFromFilePath(s);
     if (labelMap.find(label) == labelMap.end()) {
-      labelMap[label] = labelMap.size();
+      int size = labelMap.size();
+      labelMap[label] = size;
     } 
     return labelMap[label];
   };

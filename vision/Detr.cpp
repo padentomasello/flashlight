@@ -349,7 +349,7 @@ int main(int argc, char** argv) {
       prefetch_threads,
       batch_size_per_gpu);
   //SGDOptimizer opt(detr.params(), FLAGS_lr, FLAGS_momentum, FLAGS_wd);
-  AdamOptimizer opt(detr->params(), FLAGS_lr);
+  AdamOptimizer opt(detr->params(), FLAGS_lr, FLAGS_wd);
   //AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1);
   //AdamOptimizer backbone_opt(backbone->params(), FLAGS_lr * 0.1);
 
