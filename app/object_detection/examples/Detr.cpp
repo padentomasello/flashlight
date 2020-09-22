@@ -26,6 +26,7 @@
 DEFINE_string(data_dir, "/private/home/padentomasello/data/coco3/", "Directory of imagenet data");
 DEFINE_double(lr, 0.0001f, "Learning rate");
 DEFINE_double(momentum, 0.9f, "Momentum");
+DEFINE_uint64(metric_iters, 5, "Print metric every");
 
 DEFINE_double(wd, 1e-4f, "Weight decay");
 DEFINE_uint64(epochs, 50, "Epochs");
@@ -455,7 +456,7 @@ std::shared_ptr<Module> backbone;
       //////////////////////////
       // Metrics
       /////////////////////////
-      if(++idx % 5 == 0) {
+      if(++idx % FLAGS_metric_iters == 0) {
         double total_time = timers["total"].value();
         double sample_per_second = (idx * FLAGS_batch_size * FLAGS_world_size) / total_time;
         double forward_time = timers["forward"].value();
