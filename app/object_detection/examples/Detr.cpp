@@ -312,7 +312,7 @@ std::shared_ptr<Module> backbone;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
       //<< "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH "
       << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
-      << "/private/home/padentomasello/code/flashlight/vision/scripts/eval_coco.py --dir "
+      << "/private/home/padentomasello/code/flashlight/app/object_detection/scripts/eval_coco.py --dir "
       << FLAGS_eval_dir;
     system(ss.str().c_str());
     std::stringstream ss2;
