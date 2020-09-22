@@ -43,7 +43,7 @@ DEFINE_string(
     "/tmp/",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
-DEFINE_uint64(batch_size, 256, "Total batch size across all gpus");
+DEFINE_uint64(batch_size, 16, "Total batch size across all gpus");
 DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
@@ -215,10 +215,9 @@ int main(int argc, char** argv) {
   const int32_t numQueries = 100;
   const float pDropout = 0.0;
   const bool auxLoss = false;
-
-  std::shared_ptr<Module> backbone;
+std::shared_ptr<Module> backbone;
   //backbone = std::make_shared<Sequential>(resnet34());
-  std::string modelPath = "/checkpoint/padentomasello/models/resnet34backbone49";
+  std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
   fl::load(modelPath, backbone);
   freezeBatchNorm(backbone);
   //backbone->eval();
