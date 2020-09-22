@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
   const int32_t hiddenDim = modelDim;
   const int32_t numClasses = 91;
   const int32_t numQueries = 100;
-  const float pDropout = 0.0;
+  const float pDropout = 0.1;
   const bool auxLoss = false;
 std::shared_ptr<Module> backbone;
   //backbone = std::make_shared<Sequential>(resnet34());
