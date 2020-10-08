@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     logdir = ''
     if not args.output_dir:
-        logdir = "/private/home/padentomasello/tb_logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = "/private/home/padentomasello/tb_logs2/" + datetime.now().strftime("%Y%m%d-%H%M%S")
     else:
         logdir = args.output_dir
 

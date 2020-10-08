@@ -10,8 +10,14 @@ def create_training_list(img_folder, ann_file, output_file):
     ids = list(sorted(coco.imgs.keys()))
 
     i = 0;
+    j = 0
     with open(output_file, 'w') as out:
         for idx in ids:
+            if j < 512:
+                j += 1
+                i += 1
+                continue
+            j += 1
             filepath = coco.loadImgs(idx)[0]['file_name']
             img = Image.open(os.path.join(img_folder, filepath))
             w, h = img.size
@@ -46,7 +52,7 @@ def create_training_list(img_folder, ann_file, output_file):
             out.write(" ".join(strings))
             out.write('\n')
             i += 1
-            if i == 128:
+            if i == 1024:
                 break;
 
 # def dump_dataset(image_set, image_folder, args):
