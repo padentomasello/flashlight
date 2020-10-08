@@ -69,9 +69,9 @@ fl::Variable transformerMultiheadAttention(
   auto scores = matmulTN(q, k);
   scores = scores / std::sqrt(float(headDim));
 
-  if(!keyPaddingMask.isempty()) {
-    scores = scores + tileAs(moddims(log(keyPaddingMask), { 1, srcLen, 1, bsz }), scores);
-  }
+  //if(!keyPaddingMask.isempty()) {
+    //scores = scores + tileAs(moddims(log(keyPaddingMask), { 1, srcLen, 1, bsz }), scores);
+  //}
 
   auto attn = dropout(softmax(scores, 1), pDropout);
   auto result = matmulNT(attn, v);

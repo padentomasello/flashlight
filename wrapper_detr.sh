@@ -22,7 +22,7 @@ ls $BUILD_DIR
 EVAL_DIR=$BUILD_DIR/eval/$SLURM_LOCALID/
 mkdir -p $BUILD_DIR/rndv/
 mkdir -p $EVAL_DIR
-$BUILD_DIR/flashlight/build/vision/Detr -lr 0.0001 --epochs 100000 --batch_size 16 \
+$BUILD_DIR/flashlight/build/vision/Detr -lr 0.0001 --epochs 100000 --batch_size 8 \
 --world_rank $SLURM_LOCALID --world_size $SLURM_NTASKS \
 --rndv_filepath $BUILD_DIR/rndv/ \
 --checkpointpath /checkpoint/padentomasello/models/detr \

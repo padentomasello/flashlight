@@ -43,7 +43,7 @@ DEFINE_string(
     "/tmp/",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
-DEFINE_uint64(batch_size, 256, "Total batch size across all gpus");
+DEFINE_uint64(batch_size, 8, "Total batch size across all gpus");
 DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
