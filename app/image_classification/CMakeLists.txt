@@ -6,20 +6,20 @@ add_library(
   )
 
 # Find GLog
-find_package(GLOG REQUIRED)
-if (GLOG_FOUND)
-  message(STATUS "GLOG found")
-else()
-  message(FATAL_ERROR "GLOG not found")
-endif()
+#find_package(GLOG REQUIRED)
+#if (GLOG_FOUND)
+  #message(STATUS "GLOG found")
+#else()
+  #message(FATAL_ERROR "GLOG not found")
+#endif()
 
-# Find GFlags
-find_package(GFLAGS REQUIRED)
-if (GFLAGS_FOUND)
-  message(STATUS "GFLAGS found")
-else()
-  message(FATAL_ERROR "GFLAGS not found")
-endif()
+## Find GFlags
+#find_package(GFLAGS REQUIRED)
+#if (GFLAGS_FOUND)
+  #message(STATUS "GFLAGS found")
+#else()
+  #message(FATAL_ERROR "GFLAGS not found")
+#endif()
 
 target_link_libraries(
   flashlight-app-image-classification
