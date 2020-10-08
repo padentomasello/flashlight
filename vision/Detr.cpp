@@ -27,8 +27,8 @@ DEFINE_string(data_dir, "/private/home/padentomasello/data/coco3/", "Directory o
 DEFINE_double(lr, 0.0001f, "Learning rate");
 DEFINE_double(momentum, 0.9f, "Momentum");
 
-DEFINE_double(wd, 1e-4f, "Weight decay");
-DEFINE_uint64(epochs, 50, "Epochs");
+DEFINE_double(wd, 0.0f, "Weight decay");
+DEFINE_uint64(epochs, 100000, "Epochs");
 DEFINE_uint64(eval_iters, 1, "Epochs");
 DEFINE_int64(
     world_rank,
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
   const int32_t hiddenDim = modelDim;
   const int32_t numClasses = 91;
   const int32_t numQueries = 100;
-  const float pDropout = 0.0;
+  const float pDropout = 0.1;
   const bool auxLoss = false;
 
   std::shared_ptr<Module> backbone;

@@ -17,6 +17,8 @@ echo $SLURM_LOCALID
 export LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH
 
 BUILD_DIR=/scratch/slurm_tmpdir/$SLURM_JOB_ID/$1
+
+ls $BUILD_DIR
 EVAL_DIR=$BUILD_DIR/eval/$SLURM_LOCALID/
 mkdir -p $BUILD_DIR/rndv/
 mkdir -p $EVAL_DIR

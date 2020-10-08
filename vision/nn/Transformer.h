@@ -172,8 +172,8 @@ class TransformerBaseLayer : public Container {
       //norm2_(std::make_shared<LayerNorm>(std::vector<int>(1))),
       //norm1_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim)),
       //norm2_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim)),
-      norm1_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true)),
-      norm2_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true)),
+      norm1_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim)),
+      norm2_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim)),
       pDropout_(pDropout)
       {
         add(self_attn_);
@@ -264,7 +264,7 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
         TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout),
         encoder_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
         //norm3_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
-        norm3_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true))
+        norm3_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim))
         { };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -328,7 +328,7 @@ class TransformerDecoder : public Container {
         add(TransformerDecoderLayer(modelDim, headDim, mlpDim, nHeads, pDropout));
       }
       //add(LayerNorm(0, 1e-3, true, modelDim));
-      add(LayerNorm(std::vector<int>{0}, 1e-5, true));
+      add(LayerNorm(std::vector<int>{0}, 1e-5, true, modelDim));
     }
 
     std::vector<Variable> forward(const std::vector<Variable>& input) override {
@@ -362,7 +362,7 @@ class TransformerEncoder : public Container {
       int32_t layers,
       float pDropout) :
         //norm_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
-        norm_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true))
+        norm_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim))
     {
       for(int i = 0; i < layers; i++) {
         add(TransformerEncoderLayer(modelDim, headDim, mlpDim, nHeads, pDropout));
