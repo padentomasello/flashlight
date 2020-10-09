@@ -14,7 +14,10 @@
 #include "flashlight/app/object_detection/dataset/Coco.h"
 #include "flashlight/app/object_detection/nn/PositionalEmbeddingSine.h"
 #include "flashlight/app/object_detection/nn/Transformer.h"
+
 //#include "flashlight/dataset/datasets.h"
+//	16
+#include "flashlight/ext/common/DistributedUtils.h"
 #include "flashlight/ext/image/af/Transforms.h"
 #include "flashlight/ext/image/fl/dataset/Utils.h"
 #include "flashlight/ext/image/fl/models/Resnet34Backbone.h"
@@ -44,6 +47,7 @@ DEFINE_string(
     "/tmp/",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
+DEFINE_bool(enable_distributed, false, "Enable distributed training");
 DEFINE_uint64(batch_size, 16, "Total batch size across all gpus");
 DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
@@ -164,20 +168,23 @@ int main(int argc, char** argv) {
   // Setup distributed training
   ////////////////////////
   af::info();
-  fl::distributedInit(
-  fl::DistributedInit::FILE_SYSTEM,
-  FLAGS_world_rank,
-  FLAGS_world_size,
-  {{fl::DistributedConstants::kMaxDevicePerNode,
-    std::to_string(8)},
-   {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+  if (FLAGS_enable_distributed) {
+    fl::distributedInit(
+    fl::DistributedInit::FILE_SYSTEM,
+    FLAGS_world_rank,
+    FLAGS_world_size,
+    {{fl::DistributedConstants::kMaxDevicePerNode,
+      std::to_string(8)},
+     {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
+  }
+  const int worldRank = fl::getWorldRank();
+  const int worldSize = fl::getWorldSize();
 
-  std::cout << "WorldRank " << FLAGS_world_rank << " world_size " << FLAGS_world_size << std::endl;
-  af::setDevice(FLAGS_world_rank);
-  af::setSeed(FLAGS_world_size);
+  af::setDevice(worldRank);
+  af::setSeed(worldSize);
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0 / FLAGS_world_size,
+      1.0 / worldSize,
       true,
       true);
 
@@ -335,8 +342,8 @@ std::shared_ptr<Module> backbone;
   auto train_ds = std::make_shared<CocoDataset>(
       coco_dir + "train.lst",
       val_transforms,
-      FLAGS_world_rank,
-      FLAGS_world_size,
+      worldRank,
+      worldSize,
       batch_size_per_gpu,
       prefetch_threads,
       batch_size_per_gpu);
@@ -344,8 +351,8 @@ std::shared_ptr<Module> backbone;
   auto val_ds = std::make_shared<CocoDataset>(
       coco_dir + "val.lst",
       val_transforms,
-      FLAGS_world_rank,
-      FLAGS_world_size,
+      worldRank,
+      worldSize,
       batch_size_per_gpu,
       prefetch_threads,
       batch_size_per_gpu);
@@ -356,7 +363,7 @@ std::shared_ptr<Module> backbone;
 
   // Small utility functions to load and save models
   //auto saveModel = [&detr](int epoch) {
-    //if(FLAGS_world_rank == 0) {
+    //if(worldRank == 0) {
       //std::string modelPath = FLAGS_checkpointpath + std::to_string(epoch);
       //std::cout <<  "Saving model to file: " << modelPath << std::endl;
       //fl::save(modelPath, detr);
@@ -446,7 +453,9 @@ std::shared_ptr<Module> backbone;
       accumLoss.backward();
       timers["backward"].stop();
 
-      reducer->finalize();
+      if (FLAGS_enable_distributed) {
+        reducer->finalize();
+      }
       fl::clipGradNorm(detr->params(), 0.1);
       opt.step();
       opt2.step();
@@ -458,7 +467,7 @@ std::shared_ptr<Module> backbone;
       /////////////////////////
       if(++idx % FLAGS_metric_iters == 0) {
         double total_time = timers["total"].value();
-        double sample_per_second = (idx * FLAGS_batch_size * FLAGS_world_size) / total_time;
+        double sample_per_second = (idx * FLAGS_batch_size * worldSize) / total_time;
         double forward_time = timers["forward"].value();
         double backward_time = timers["backward"].value();
         double criterion_time = timers["criterion"].value();
