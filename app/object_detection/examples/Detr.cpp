@@ -47,7 +47,7 @@ DEFINE_string(
     "/tmp/",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
-DEFINE_bool(enable_distributed, false, "Enable distributed training");
+DEFINE_bool(enable_distributed, true, "Enable distributed training");
 DEFINE_uint64(batch_size, 16, "Total batch size across all gpus");
 DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
@@ -167,7 +167,6 @@ int main(int argc, char** argv) {
   /////////////////////////
   // Setup distributed training
   ////////////////////////
-  af::info();
   if (FLAGS_enable_distributed) {
     fl::distributedInit(
     fl::DistributedInit::FILE_SYSTEM,
@@ -177,11 +176,13 @@ int main(int argc, char** argv) {
       std::to_string(8)},
      {fl::DistributedConstants::kFilePath, FLAGS_rndv_filepath}});
   }
+  af::info();
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
 
   af::setDevice(worldRank);
   af::setSeed(worldSize);
+  std::cout << "World rank: " << worldRank << std::endl;
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
       1.0 / worldSize,
