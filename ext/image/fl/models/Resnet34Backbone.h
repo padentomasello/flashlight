@@ -48,7 +48,7 @@ void freezeBatchNorm(std::shared_ptr<fl::Module> ptr) {
 class Resnet34Backbone : public Container {
 
 public:
-  Resnet34Backbone() : 
+  Resnet34Backbone() :
     backbone_(std::make_shared<Sequential>()),
     tail_(std::make_shared<Sequential>())
   {
@@ -86,7 +86,7 @@ public:
  private:
    std::shared_ptr<Sequential> backbone_;
    std::shared_ptr<Sequential> tail_;
-    FL_SAVE_LOAD_WITH_BASE(fl::Container)
+   FL_SAVE_LOAD_WITH_BASE(fl::Container)
 };
 
 } // end namespace image

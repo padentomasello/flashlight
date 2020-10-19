@@ -53,6 +53,8 @@ DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
 DEFINE_string(eval_dir, "/private/home/padentomasello/data/coco/output/", "Directory to dump images to run evaluation script on");
+DEFINE_bool(print_params, true, "Directory to dump images to run evaluation script on");
+DEFINE_bool(pretrained, true, "Directory to dump images to run evaluation script on");
 
 
 using namespace fl;
@@ -150,6 +152,29 @@ private:
 
 };
 
+void printParamsAndGrads(std::shared_ptr<fl::Module> mod) {
+  auto params = mod->params();
+  int i = 0;
+  for(auto param : params) {
+    double paramMean = af::mean<double>(param.array());
+    double paramStd = af::stdev<double>(param.array());
+    double gradMean = -1.111111111111;
+    double gradStd = -1.111111111111;
+    if(param.isGradAvailable()) {
+      auto grad = param.grad();
+      gradMean = af::mean<double>(grad.array());
+      gradStd = af::stdev<double>(grad.array());
+    }
+    std::cout << " i: " << i
+      << " mean: " << paramMean
+      << " std: " << paramStd
+      << " grad mean: " << gradMean
+      << " grad std: " << gradStd
+      << std::endl;
+    i++;
+  }
+}
+
 int main(int argc, char** argv) {
   std::stringstream ss;
   ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
@@ -224,12 +249,18 @@ int main(int argc, char** argv) {
   const int32_t numQueries = 100;
   const float pDropout = 0.1;
   const bool auxLoss = false;
-std::shared_ptr<Module> backbone;
+  std::shared_ptr<Module> backbone;
   //backbone = std::make_shared<Sequential>(resnet34());
-  std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
-  fl::load(modelPath, backbone);
-  freezeBatchNorm(backbone);
-  //backbone->eval();
+  if(FLAGS_pretrained) {
+    std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
+    fl::load(modelPath, backbone);
+  } else {
+    backbone = std::make_shared<Resnet34Backbone>();
+  }
+
+  //
+  //freezeBatchNorm(backbone);
+  backbone->train();
   auto transformer = std::make_shared<Transformer>(
       modelDim,
       numHeads,
@@ -300,6 +331,7 @@ std::shared_ptr<Module> backbone;
     int idx = 0;
     for(auto& sample : *dataset) {
       auto images =  { fl::Variable(sample.images, false) };
+      //auto features = backbone->forward(images)[0];
       auto features = backbone->forward(images)[1];
       auto masks = fl::Variable(
           af::resize(
@@ -328,7 +360,7 @@ std::shared_ptr<Module> backbone;
     ss2 << "rm -rf " << FLAGS_eval_dir << "/detection*";
     system(ss2.str().c_str());
     backbone->train();
-    freezeBatchNorm(backbone);
+    //freezeBatchNorm(backbone);
     model->train();
   };
 
@@ -390,7 +422,7 @@ std::shared_ptr<Module> backbone;
     train_ds->resample();
     //while(true) {
     for(auto& sample : *train_ds) {
-      auto images =  { fl::Variable(sample.images, false) };
+      auto images =  { fl::Variable(sample.images, true) };
 
 
       //saveOutput(sample.imageSizes, sample.imageIds, sample.target_boxes[0], sample.target_labels[0], 
@@ -398,20 +430,19 @@ std::shared_ptr<Module> backbone;
       //return 0;
 
       timers["forward"].resume();
-      auto features = backbone->forward(images)[1];
+      //fl::Variable features = backbone->forward(images)[0];
+      fl::Variable features = backbone->forward(images)[1];
 
-      auto masks = fl::Variable(
+      fl::Variable masks = fl::Variable(
           af::resize(
             sample.masks, 
             features.dims(0), 
             features.dims(1), 
             AF_INTERP_NEAREST),
-        false
+        true
       );
       //auto features = input;
       auto output = detr->forward({features, masks});
-      output[0].array().eval();
-      output[1].array().eval();
       timers["forward"].stop();
 
       /////////////////////////
@@ -457,7 +488,15 @@ std::shared_ptr<Module> backbone;
       if (FLAGS_enable_distributed) {
         reducer->finalize();
       }
+
+      if(FLAGS_print_params) {
+        std::cout << "Print detr params + grads" << std::endl;
+        printParamsAndGrads(detr);
+        std::cout << "Print backbone params + grads" << std::endl;
+        printParamsAndGrads(backbone);
+      }
       fl::clipGradNorm(detr->params(), 0.1);
+
       opt.step();
       opt2.step();
 
