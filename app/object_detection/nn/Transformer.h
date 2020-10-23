@@ -12,7 +12,6 @@ namespace fl {
 namespace app {
 namespace object_detection {
 
-
 fl::Variable transformerInitLinear(int32_t inDim, int32_t outDim) {
   float std = std::sqrt(1.0 / float(inDim));
   return fl::uniform(outDim, inDim, -std, std);
@@ -71,9 +70,9 @@ fl::Variable transformerMultiheadAttention(
   auto scores = matmulTN(q, k);
   scores = scores / std::sqrt(float(headDim));
 
-  if(!keyPaddingMask.isempty()) {
-    scores = scores + tileAs(moddims(log(keyPaddingMask), { 1, srcLen, 1, bsz }), scores);
-  }
+  //if(!keyPaddingMask.isempty()) {
+    //scores = scores + tileAs(moddims(log(keyPaddingMask), { 1, srcLen, 1, bsz }), scores);
+  //}
 
   auto attn = dropout(softmax(scores, 1), pDropout);
   auto result = matmulNT(attn, v);
@@ -236,7 +235,7 @@ class TransformerEncoderLayer : public TransformerBaseLayer {
     {
       //std::cout << "her1 " << src.dims() << std::endl;
       auto src2 = (*norm1_)(src);
-      src2 = this->selfAttention(src, pos, mask);
+      src2 = this->selfAttention(src2, pos, mask);
       src = src + dropout(src2, pDropout_);
     }
     // MLP
@@ -267,7 +266,10 @@ class TransformerDecoderLayer : public TransformerBaseLayer {
         encoder_attn_(std::make_shared<MultiheadAttention>(modelDim, modelDim / nHeads, nHeads, pDropout)),
         //norm3_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
         norm3_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim))
-        { };
+        { 
+          add(encoder_attn_);
+          add(norm3_);
+        };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
       assert(input.size() == 5);
@@ -362,8 +364,8 @@ class TransformerEncoder : public Container {
       int32_t mlpDim,
       int32_t nHeads,
       int32_t layers,
-      float pDropout) :
-        //norm_(std::make_shared<LayerNorm>(0, 1e-3, true, modelDim))
+      float pDropout) 
+      :
         norm_(std::make_shared<LayerNorm>(std::vector<int>{0}, 1e-5, true, modelDim))
     {
       for(int i = 0; i < layers; i++) {

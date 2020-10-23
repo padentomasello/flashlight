@@ -13,7 +13,7 @@ namespace image {
 void freezeBatchNorm(std::shared_ptr<fl::Module> ptr) {
   //std::cout << "Freezing " << ptr->prettyString() << std::endl;
   if(dynamic_cast<fl::BatchNorm*>(ptr.get())) {
-    ptr->eval();
+    ptr->zeroGrad();
   } else if(dynamic_cast<fl::Container*>(ptr.get())) {
       for(auto mod : dynamic_cast<fl::Container*>(ptr.get())->modules()) {
         freezeBatchNorm(mod);
@@ -74,8 +74,8 @@ public:
   }
 
   std::vector<Variable> forward(const std::vector<Variable>& input) {
-    auto features = backbone_->forward(input);
-    auto output = tail_->forward(features);
+    auto features = module(0)->forward(input);
+    auto output = module(1)->forward(features);
     return { output[0], features[0] };
   }
 
@@ -86,6 +86,7 @@ public:
  private:
    std::shared_ptr<Sequential> backbone_;
    std::shared_ptr<Sequential> tail_;
+   //FL_SAVE_LOAD_WITH_BASE(fl::Container, backbone_, tail_)
    FL_SAVE_LOAD_WITH_BASE(fl::Container)
 };
 

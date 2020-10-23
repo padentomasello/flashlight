@@ -105,10 +105,12 @@ public:
           10000, false, 0.0f))
   {
     //add(backbone_);
-    add(transformer_);
+    add(bboxEmbed_);
     add(classEmbed_);
-    add(queryEmbed_);
     add(inputProj_);
+    add(posEmbed_);
+    add(queryEmbed_);
+    add(transformer_);
   }
 
   std::vector<Variable> forward(const std::vector<Variable>& input) {
@@ -257,10 +259,10 @@ int main(int argc, char** argv) {
   } else {
     backbone = std::make_shared<Resnet34Backbone>();
   }
+  backbone->train();
 
   //
-  //freezeBatchNorm(backbone);
-  backbone->train();
+  //backbone->train();
   auto transformer = std::make_shared<Transformer>(
       modelDim,
       numHeads,
@@ -360,7 +362,6 @@ int main(int argc, char** argv) {
     ss2 << "rm -rf " << FLAGS_eval_dir << "/detection*";
     system(ss2.str().c_str());
     backbone->train();
-    //freezeBatchNorm(backbone);
     model->train();
   };
 
@@ -496,6 +497,8 @@ int main(int argc, char** argv) {
         printParamsAndGrads(backbone);
       }
       fl::clipGradNorm(detr->params(), 0.1);
+
+      freezeBatchNorm(backbone);
 
       opt.step();
       opt2.step();

@@ -40,6 +40,29 @@ DEFINE_uint64(batch_size, 256, "Total batch size across all gpus");
 DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
+void printParamsAndGrads(std::shared_ptr<fl::Module> mod) {
+  auto params = mod->params();
+  int i = 0;
+  for(auto param : params) {
+    double paramMean = af::mean<double>(param.array());
+    double paramStd = af::stdev<double>(param.array());
+    double gradMean = -1.111111111111;
+    double gradStd = -1.111111111111;
+    if(param.isGradAvailable()) {
+      auto grad = param.grad();
+      gradMean = af::mean<double>(grad.array());
+      gradStd = af::stdev<double>(grad.array());
+    }
+    std::cout << " i: " << i
+      << " mean: " << paramMean
+      << " std: " << paramStd
+      << " grad mean: " << gradMean
+      << " grad std: " << gradStd
+      << std::endl;
+    i++;
+  }
+}
+
 
 using namespace fl;
 using namespace fl::ext::image;
@@ -187,6 +210,9 @@ int main(int argc, char** argv) {
     loadModel(FLAGS_checkpoint);
   }
 
+  saveModel(0);
+  loadModel(0);
+
   // The main training loop
   TimeMeter time_meter;
   TopKMeter top5_meter(5, true);
@@ -221,6 +247,7 @@ int main(int argc, char** argv) {
       loss.backward();
 
       reducer->finalize();
+      printParamsAndGrads(model);
       opt.step();
 
       // Compute and record the prediction error.
