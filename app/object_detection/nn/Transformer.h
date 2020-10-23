@@ -70,6 +70,7 @@ fl::Variable transformerMultiheadAttention(
   auto scores = matmulTN(q, k);
   scores = scores / std::sqrt(float(headDim));
 
+
   if(!keyPaddingMask.isempty()) {
     scores = scores + tileAs(moddims(log(keyPaddingMask), { 1, srcLen, 1, bsz }), scores);
   }
@@ -120,6 +121,9 @@ class MultiheadAttention : public Container {
       assert(queries.dims(1) == values.dims(1));
       assert(values.dims(2) ==  keys.dims(2));
 
+
+      // TODO Test for now
+      //assert(!keyPaddingMask.isempty());
       if(!keyPaddingMask.isempty()) {
         assert(keyPaddingMask.dims(0) == keys.dims(2));
         assert(keyPaddingMask.dims(1) == keys.dims(1));
@@ -231,6 +235,7 @@ class TransformerEncoderLayer : public TransformerBaseLayer {
     auto src = input[0];
     auto mask = input[1];
     auto pos = input[2];
+    assert(!mask.isempty());
     // Self Attention
     {
       //std::cout << "her1 " << src.dims() << std::endl;
