@@ -53,7 +53,7 @@ DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
 DEFINE_string(eval_dir, "/private/home/padentomasello/data/coco/output/", "Directory to dump images to run evaluation script on");
-DEFINE_bool(print_params, true, "Directory to dump images to run evaluation script on");
+DEFINE_bool(print_params, false, "Directory to dump images to run evaluation script on");
 DEFINE_bool(pretrained, true, "Directory to dump images to run evaluation script on");
 
 
