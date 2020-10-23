@@ -368,8 +368,8 @@ TransformAllFunction randomResize(
     const af::array originalImage = in[0];
     auto output_size = getSize(originalImage, size, maxsize);
     const af::dim4 originalDims = originalImage.dims();
-    const af::array resizedImage = af::resize(originalImage, output_size.first, output_size.second, AF_INTERP_BILINEAR);
-    //const af::array resizedImage = af::resize(originalImage, size, size, AF_INTERP_BILINEAR);
+    //const af::array resizedImage = af::resize(originalImage, output_size.first, output_size.second, AF_INTERP_BILINEAR);
+    const af::array resizedImage = af::resize(originalImage, size, size, AF_INTERP_BILINEAR);
     const af::dim4 resizedDims = resizedImage.dims();
 
 
