@@ -1,10 +1,14 @@
 #pragma once
+#include <gflags/gflags.h>
 
 #include "flashlight/ext/image/fl/dataset/Jpeg.h"
 #include "flashlight/ext/image/af/Transforms.h"
 #include "flashlight/dataset/datasets.h"
 
 #include <iostream>
+
+DECLARE_bool(onesize);
+DECLARE_bool(equal_aspect);
 
 namespace fl {
 namespace app {
