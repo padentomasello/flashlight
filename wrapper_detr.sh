@@ -25,8 +25,8 @@ $BUILD_DIR/flashlight/build/Detr -lr 0.0001 --epochs 100000 --batch_size 8 \
 --rndv_filepath $BUILD_DIR/rndv/ \
 --checkpointpath /checkpoint/padentomasello/models/detr \
 --eval_dir $EVAL_DIR \
---tryfromenv=eval_iters,data_dir,metric_iters,pretrained,print_params \
---onesize
+--tryfromenv=eval_iters,data_dir,metric_iters,pretrained,print_params # \
+#--onesize
 
 
 
