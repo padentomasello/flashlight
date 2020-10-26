@@ -427,7 +427,7 @@ CocoDataset::CocoDataset(
   if (FLAGS_onesize) {
     transformed = std::make_shared<TransformAllDataset>(
          //transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
-         transformed, randomResize({480}, 800));
+         transformed, randomResize({256}, 800));
   } else {
     transformed = std::make_shared<TransformAllDataset>(
          transformed, randomResize({480, 512}, 800));
