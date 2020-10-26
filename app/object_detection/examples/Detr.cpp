@@ -120,7 +120,7 @@ public:
     auto mask = input[1];
     auto backboneFeatures = input;
     auto inputProjection = inputProj_->forward(features);
-    auto posEmbed = posEmbed_->forward(features);
+    auto posEmbed = posEmbed_->forward(mask);
     //return { inputProjection, posEmbed };
     auto hs = transformer_->forward(
         inputProjection,

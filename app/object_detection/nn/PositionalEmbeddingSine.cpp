@@ -21,7 +21,10 @@ PositionalEmbeddingSine::PositionalEmbeddingSine(
 };
 
 Variable PositionalEmbeddingSine::forward(const Variable& input) {
-  auto nonMask = af::constant(1, { input.dims(0), input.dims(1), input.dims(3) });
+  auto inputDims = input.dims();
+  // Input mask will be [ w x h x 1 x b ]
+  // but implemention expects [ w x h x b ] in order to do interleaves easier
+  auto nonMask = af::moddims(input.array(), { inputDims[0], inputDims[1], inputDims[3], 1 });
 
   //auto nonMask = ~mask;
   //
