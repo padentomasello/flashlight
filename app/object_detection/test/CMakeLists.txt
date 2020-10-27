@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5.1)
 
 set(DIR ${CMAKE_CURRENT_LIST_DIR})
-set(LIBS flashlight-app-vision)
+set(LIBS flashlight-app-object-det)
 
 build_test(${DIR}/criterion/SetCriterionTest.cpp ${LIBS} "")
 build_test(${DIR}/TransformerTest.cpp ${LIBS} "")
