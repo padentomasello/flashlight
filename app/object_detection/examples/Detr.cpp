@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
       worldSize,
       batch_size_per_gpu,
       prefetch_threads,
-      batch_size_per_gpu);
+      batch_size_per_gpu, false);
 
   auto val_ds = std::make_shared<CocoDataset>(
       coco_dir + "val.lst",
@@ -389,7 +389,8 @@ int main(int argc, char** argv) {
       worldSize,
       batch_size_per_gpu,
       prefetch_threads,
-      batch_size_per_gpu);
+      batch_size_per_gpu,
+      true);
   //SGDOptimizer opt(detr.params(), FLAGS_lr, FLAGS_momentum, FLAGS_wd);
   AdamOptimizer opt(detr->params(), FLAGS_lr, FLAGS_wd);
   AdamOptimizer opt2(backbone->params(), FLAGS_lr * 0.1, FLAGS_wd);

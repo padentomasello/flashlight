@@ -119,8 +119,6 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
   //// TODO TESTING!!!!!!!!
   //// TODO 
   //// TODO
-  //maxW = 800;
-  //maxH = 800;
   af::dim4 dims = { maxW, maxH, 3, static_cast<long>(data.size()) };
   af::dim4 maskDims = { maxW, maxH, 1, static_cast<long>(data.size()) };
 
@@ -345,7 +343,7 @@ TransformAllFunction randomResize(
       float minOriginalSize = std::min(w, h);
       float maxOriginalSize = std::max(w, h);
       if (maxOriginalSize / minOriginalSize * size > maxSize) {
-        size = maxSize * minOriginalSize / maxOriginalSize;
+        size = round(maxSize * minOriginalSize / maxOriginalSize);
       }
     }
 
@@ -406,7 +404,8 @@ CocoDataset::CocoDataset(
     int world_size,
     int batch_size,
     int num_threads,
-    int prefetch_size
+    int prefetch_size,
+    bool val
   ) {
   // Images
   const std::vector<std::string> filepaths = parseImageFilepaths(list_file);
@@ -424,15 +423,21 @@ CocoDataset::CocoDataset(
 
   transformed = merged;
 
-  if (FLAGS_onesize) {
+  if (val) {
     transformed = std::make_shared<TransformAllDataset>(
          //transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
-         transformed, randomResize({256}, 800));
-  } else {
-    transformed = std::make_shared<TransformAllDataset>(
-         transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
-         //transformed, randomResize({480, 512}, 800));
-         //transformed, randomResize({256}, 800));
+         transformed, randomResize({800}, 800));
+   } else {
+    if (FLAGS_onesize) {
+      transformed = std::make_shared<TransformAllDataset>(
+           //transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
+           transformed, randomResize({256}, 800));
+    } else {
+      transformed = std::make_shared<TransformAllDataset>(
+           transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
+           //transformed, randomResize({480, 512}, 800));
+           //transformed, randomResize({256}, 800));
+     }
    }
 
   transformed = std::make_shared<TransformAllDataset>(

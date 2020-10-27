@@ -111,7 +111,8 @@ public:
       int world_size,
       int batch_size,
       int num_threads,
-      int prefetch_size
+      int prefetch_size,
+      bool val
       ); 
 
   std::shared_ptr<Dataset> getLabels(std::string list_file);
