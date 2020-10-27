@@ -119,8 +119,8 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
   //// TODO TESTING!!!!!!!!
   //// TODO 
   //// TODO
-  maxW = 800;
-  maxH = 800;
+  //maxW = 800;
+  //maxH = 800;
   af::dim4 dims = { maxW, maxH, 3, static_cast<long>(data.size()) };
   af::dim4 maskDims = { maxW, maxH, 1, static_cast<long>(data.size()) };
 
