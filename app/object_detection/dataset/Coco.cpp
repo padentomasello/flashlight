@@ -118,6 +118,8 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
   }
   //// TODO TESTING!!!!!!!!
   //// TODO 
+  maxW = 801;
+  maxH = 801;
   //// TODO
   af::dim4 dims = { maxW, maxH, 3, static_cast<long>(data.size()) };
   af::dim4 maskDims = { maxW, maxH, 1, static_cast<long>(data.size()) };
@@ -423,18 +425,20 @@ CocoDataset::CocoDataset(
 
   transformed = merged;
 
+  int maxSize = 800;
+  int oneSize = 800;
   if (val) {
     transformed = std::make_shared<TransformAllDataset>(
          //transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
-         transformed, randomResize({800}, 800));
+         transformed, randomResize({oneSize}, maxSize));
    } else {
     if (FLAGS_onesize) {
       transformed = std::make_shared<TransformAllDataset>(
            //transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
-           transformed, randomResize({256}, 800));
+           transformed, randomResize({oneSize}, maxSize));
     } else {
       transformed = std::make_shared<TransformAllDataset>(
-           transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, 800));
+           transformed, randomResize({480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800}, maxSize));
            //transformed, randomResize({480, 512}, 800));
            //transformed, randomResize({256}, 800));
      }
