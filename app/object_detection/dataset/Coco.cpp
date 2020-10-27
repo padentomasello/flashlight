@@ -118,8 +118,8 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
   }
   //// TODO TESTING!!!!!!!!
   //// TODO 
-  maxW = 801;
-  maxH = 801;
+  maxW = maxW + 10;
+  maxH = maxY + 10;
   //// TODO
   af::dim4 dims = { maxW, maxH, 3, static_cast<long>(data.size()) };
   af::dim4 maskDims = { maxW, maxH, 1, static_cast<long>(data.size()) };
@@ -130,7 +130,7 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
     //throw std::invalid_argument("# of dims must be < 4 for batching");
   //}
   //dims[ndims] = data.size();
-  auto batcharr = af::constant(1000000, dims);
+  auto batcharr = af::constant(0, dims);
 
   //auto maskarr = af::constant(true, dims, b8);
   auto maskarr = af::constant(0, maskDims);
