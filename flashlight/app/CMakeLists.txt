@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 cmake_dependent_option(FL_BUILD_APP_ASR "Build asr task for flashlight" ON "FL_BUILD_CORE;FL_BUILD_CONTRIB" OFF)
 cmake_dependent_option(FL_BUILD_APP_IMG_CLASS "Build image classification app" ON "FL_BUILD_CORE;FL_BUILD_CONTRIB" OFF)
+cmake_dependent_option(FL_BUILD_APP_OBJ_DET "Build object detection app" ON "FL_BUILD_CORE;FL_BUILD_CONTRIB" OFF)
 
 if (FL_BUILD_APP_ASR)
   message(STATUS "Building flashlight ASR app")
@@ -26,4 +27,16 @@ if (FL_BUILD_APP_IMG_CLASS)
   include(${FL_APP_IMG_CLASS_ROOT_DIR}/CMakeLists.txt)
   set(INSTALLABLE_TARGETS ${INSTALLABLE_TARGETS} flashlight-app-imclass)
   setup_install_headers(${FLASHLIGHT_APPS_DIR} ${FL_INSTALL_INC_DIR_HEADER_LOC})
+endif ()
+
+if (FL_BUILD_APP_OBJ_DET)
+  if (NOT FL_BUILD_DISTRIBUTED)
+    message(FATAL_ERROR
+    "FL_BUILD_DISTRIBUTED must be enabled for image classification")
+  endif()
+  set(FL_APP_OBJ_DET_ROOT_DIR ${FLASHLIGHT_APPS_DIR}/objdet)
+  include(${FL_APP_OBJ_DET_ROOT_DIR}/CMakeLists.txt)
+  set(INSTALLABLE_TARGETS ${INSTALLABLE_TARGETS} flashlight-app-obj-det)
+  # TODO Fix this
+  #setup_install_headers(${FLASHLIGHT_APPS_DIR} ${FL_INSTALL_INC_DIR_HEADER_LOC})
 endif ()
