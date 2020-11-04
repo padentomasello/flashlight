@@ -26,3 +26,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/dataset/CMakeLists.txt)
 add_executable(imageNetResnet34
 ${CMAKE_CURRENT_LIST_DIR}/examples/ImageNetResnet34.cpp)
 target_link_libraries(imageNetResnet34 flashlight-app-imclass)
+
+add_executable(imageNetResnet34Backbone
+${CMAKE_CURRENT_LIST_DIR}/examples/ImageNetResnet34Backbone.cpp)
+target_link_libraries(imageNetResnet34Backbone flashlight-app-imclass)
