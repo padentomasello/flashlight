@@ -116,7 +116,7 @@ public:
     auto mask = input[1];
     auto backboneFeatures = input;
     auto inputProjection = inputProj_->forward(features);
-    auto posEmbed = posEmbed_->forward(mask);
+    auto posEmbed = posEmbed_->forward({mask})[0];
     //return { inputProjection, posEmbed };
     auto hs = transformer_->forward(
         inputProjection,
@@ -202,9 +202,10 @@ int main(int argc, char** argv) {
   af::info();
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
+  af::setDevice(0);
 
-  af::setDevice(worldRank);
-  af::setSeed(worldSize);
+  //af::setDevice(worldRank);
+  //af::setSeed(worldSize);
   std::cout << "World rank: " << worldRank << std::endl;
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
@@ -329,7 +330,7 @@ int main(int argc, char** argv) {
       numClasses,
       matcher,
       lossWeights,
-      0.0,
+      0.1,
       losses);
 
   auto eval_loop = [saveOutput](
