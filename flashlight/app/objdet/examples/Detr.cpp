@@ -98,7 +98,7 @@ public:
     queryEmbed_(std::make_shared<Embedding>(hiddenDim, numQueries)),
     inputProj_(std::make_shared<Conv2D>(512, hiddenDim, 1, 1)),
     posEmbed_(std::make_shared<PositionalEmbeddingSine>(hiddenDim / 2,
-          10000, false, 0.0f))
+          10000, true, 6.283185307179586f))
   {
     //add(backbone_);
     add(bboxEmbed_);
