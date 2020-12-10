@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
   af::info();
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
-  af::setDevice(0);
+  //af::setDevice(0);
 
   //af::setDevice(worldRank);
   //af::setSeed(worldSize);
