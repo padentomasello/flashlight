@@ -18,7 +18,7 @@
 
 #include "flashlight/ext/common/DistributedUtils.h"
 #include "flashlight/ext/image/af/Transforms.h"
-#include "flashlight/ext/image/fl/models/Resnet34Backbone.h"
+#include "flashlight/ext/image/fl/models/Resnet50Backbone.h"
 #include "flashlight/ext/image/fl/models/Resnet.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
@@ -157,15 +157,26 @@ int main(int argc, char** argv) {
   const int32_t numQueries = 100;
   const float pDropout = 0.1;
   const bool auxLoss = false;
-  std::shared_ptr<Module> backbone;
+  //std::shared_ptr<Module> backbone;
+  ////backbone = std::make_shared<Sequential>(resnet34());
+  //if(FLAGS_pretrained) {
+    //std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
+    //fl::load(modelPath, backbone);
+  //} else {
+    //backbone = std::make_shared<Resnet34Backbone>();
+  //}
+   //backbone->train();
+   std::shared_ptr<Resnet50Backbone> backbone;
+  //std::shared_ptr<Module> backbone;
   //backbone = std::make_shared<Sequential>(resnet34());
   if(FLAGS_pretrained) {
-    std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
+    std::string modelPath = "/checkpoint/padentomasello/models/resnet50/from_pytorch_fbn";
+    //std::string modelPath = "/checkpoint/padentomasello/models/resnet34/d0529c4f1b68e144a096a66f5a306bb38a51c30b/65";
     fl::load(modelPath, backbone);
   } else {
-    backbone = std::make_shared<Resnet34Backbone>();
-  }
-  backbone->train();
+    backbone = std::make_shared<Resnet50Backbone>();
+    //backbone = std::make_shared<Resnet34Backbone>();
+   }
 
   //
   //backbone->train();
@@ -427,7 +438,7 @@ int main(int argc, char** argv) {
       }
       fl::clipGradNorm(detr->params(), 0.1);
 
-      freezeBatchNorm(backbone);
+      //freezeBatchNorm(backbone);
 
       opt.step();
       opt2.step();
