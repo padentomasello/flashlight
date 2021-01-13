@@ -97,7 +97,6 @@ int main(int argc, char** argv) {
   fl::init();
   google::InitGoogleLogging(argv[0]);
   google::InstallFailureSignalHandler();
-  af::array ooo_test = af::array(100000000000000000);
   std::string exec(argv[0]);
   std::vector<std::string> argvs;
   for (int i = 0; i < argc; i++) {
