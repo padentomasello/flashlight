@@ -66,7 +66,8 @@ void AdamOptimizer::step() {
 
     if (wd_ != 0) {
       // Weight decay term
-      data = data - wd_ * lr_ * data;
+      //data = data - wd_ * lr_ * data;
+      data = data - wd_ * data;
     }
 
     af::array& biasedFirst = biasedFirst_[i];
