@@ -417,6 +417,9 @@ int main(int argc, char** argv) {
       //saveOutput(sample.imageSizes, sample.imageIds, output[1].array(), output[0].array(), ss.str());
       saveOutput(sample.imageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
       idx++;
+      if (idx % 10 == 0) {
+        std::cout << " Writing idx " << idx << std::endl;
+      }
     }
     std::stringstream ss;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
@@ -496,6 +499,8 @@ int main(int argc, char** argv) {
             opt2);
   }
   //AdamOptimizer backbone_opt(backbone->params(), FLAGS_lr * 0.1);
+  eval_loop(backbone, detr, val_ds);
+  return 0;
 
 
   auto weightDict = criterion.getWeightDict();
