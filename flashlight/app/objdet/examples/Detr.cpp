@@ -440,6 +440,9 @@ int main(int argc, char** argv) {
       std::cout << "Eval failed, retrying in 5 seconds" << std::endl;
       sleep(5);
     }
+    if(FLAGS_enable_distributed) {
+      barrier();
+    }
     //system(ss.str().c_str());
     std::stringstream ss2;
     ss2 << "rm -rf " << FLAGS_eval_dir << fl::getWorldRank() <<"/detection*";
@@ -627,6 +630,9 @@ int main(int argc, char** argv) {
     std::string filename = 
       getRunFile(format("model_last.bin", idx), runIdx, runPath);
     config[kEpoch] = std::to_string(epoch);
+    Serializer::save(filename, "0.1", config, detr, opt, opt2);
+    filename = 
+      getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
     Serializer::save(filename, "0.1", config, detr, opt, opt2);
     if(epoch % FLAGS_eval_iters == 0 && epoch> 0) {
       eval_loop(backbone, detr, val_ds);
