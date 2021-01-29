@@ -100,7 +100,10 @@ def main(directory):
     # imageIds = [f'/datasets01/COCO/022719/train2017/{id:012d}.jpg' for id in imageIds]
 
     postprocess = PostProcess();
-    files = glob.glob(os.path.join(directory, 'detection*.array'))
+    print(directory)
+    glob_path = os.path.join(directory, '**', 'detection*.array')
+    print(glob_path)
+    files = glob.glob(glob_path)
     assert(len(files) > 0)
     for f in files:
 

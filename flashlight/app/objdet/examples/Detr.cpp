@@ -105,6 +105,7 @@ DEFINE_string(pytorch_init, "", "Directory to dump images to run evaluation scri
 DEFINE_string(flagsfile, "", "Directory to dump images to run evaluation script on");
 DEFINE_string(rundir, "", "Directory to dump images to run evaluation script on");
 DEFINE_string(eval_script,"/private/home/padentomasello/code/flashlight/flashlight/app/objdet/scripts/eval_coco.py", "Script to run evaluation on dumped tensors");
+DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ", "Set environment");
 
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
@@ -155,7 +156,7 @@ void printParamsAndGrads(std::shared_ptr<fl::Module> mod) {
 int main(int argc, char** argv) {
   std::stringstream ss;
   ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-    << "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH "
+    << FLAGS_set_env << " "
     << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
     << "-c 'import arrayfire as af'";
   system(ss.str().c_str());
@@ -400,6 +401,9 @@ int main(int argc, char** argv) {
       std::shared_ptr<CocoDataset> dataset) {
     model->eval();
     int idx = 0;
+    std::stringstream mkdir_command;
+    mkdir_command << "mkdir -p " << FLAGS_eval_dir << fl::getWorldRank();
+    system(mkdir_command.str().c_str());
     for(auto& sample : *dataset) {
       std::vector<Variable> input =  { 
         fl::Variable(sample.images, false),  
@@ -409,14 +413,18 @@ int main(int argc, char** argv) {
       //auto features = input;
       auto output = model->forward(input);
       std::stringstream ss;
-      ss << FLAGS_eval_dir << "detection" << idx << ".array";
+      ss << FLAGS_eval_dir << fl::getWorldRank() << "/detection" << idx << ".array";
       auto output_array = ss.str();
       int lastLayerIdx = output[0].dims(3) - 1;
       auto output_first_last = output[0].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
       auto output_second_last = output[1].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
       //saveOutput(sample.imageSizes, sample.imageIds, output[1].array(), output[0].array(), ss.str());
+      std::cout << "Writing to file " << ss.str() << std::endl;
       saveOutput(sample.imageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
       idx++;
+    }
+    if(FLAGS_enable_distributed) {
+      barrier();
     }
     std::stringstream ss;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
@@ -435,7 +443,8 @@ int main(int argc, char** argv) {
     }
     //system(ss.str().c_str());
     std::stringstream ss2;
-    ss2 << "rm -rf " << FLAGS_eval_dir << "/detection*";
+    ss2 << "rm -rf " << FLAGS_eval_dir << fl::getWorldRank() <<"/detection*";
+    std::cout << "Commond: " << ss2.str() << std::endl;
     system(ss2.str().c_str());
     model->train();
   };
@@ -499,6 +508,10 @@ int main(int argc, char** argv) {
 
 
   auto weightDict = criterion.getWeightDict();
+  if(startEpoch > 0) {
+    std::cout << "here" << std::endl;
+    eval_loop(backbone, detr, val_ds);
+  }
   for(int epoch= startEpoch; epoch < FLAGS_epochs; epoch++) {
     lrScheduler(epoch);
 
