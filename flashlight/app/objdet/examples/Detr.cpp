@@ -427,7 +427,7 @@ int main(int argc, char** argv) {
     }
     std::stringstream ss;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-      << "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH "
+      << FLAGS_set_env << " "
       << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
       << FLAGS_eval_script << " --dir "
       << FLAGS_eval_dir;
@@ -634,7 +634,7 @@ int main(int argc, char** argv) {
     filename = 
       getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
     Serializer::save(filename, "0.1", config, detr, opt, opt2);
-    if(epoch % FLAGS_eval_iters == 0 && epoch> 0) {
+    if(epoch % FLAGS_eval_iters == 0) {
       eval_loop(backbone, detr, val_ds);
       //eval_loop(detr, val_ds);
       //saveModel(e);
