@@ -17,7 +17,7 @@ echo $SLURM_LOCALID
 export LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH
 
 BUILD_DIR=/scratch/slurm_tmpdir/$SLURM_JOB_ID/$1
-EVAL_DIR=$BUILD_DIR/eval/$OMPI_COMM_WORLD_RANK/
+EVAL_DIR=$BUILD_DIR/eval/
 RUN_DIR=/checkpoint/padentomasello/models/$SLURM_JOB_ID/
 mkdir -p $RUN_DIR
 mkdir -p $BUILD_DIR/rndv/
