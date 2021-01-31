@@ -123,7 +123,7 @@ class MultiheadAttention : public Container {
       //auto mask = fl::Variable();
       float dropout = train_ ? pDropout_ : 0.0f;
       auto result = transformerMultiheadAttention(
-          q, k, v, posEmb, keyPaddingMask, numHeads_, dropout);
+          q, k, v, posEmb, keyPaddingMask, numHeads_, pDropout_);
       result = (*wf_)(result);
       assert(result.dims() == queries.dims());
       std::vector<Variable> results = { result };

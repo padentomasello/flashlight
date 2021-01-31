@@ -510,7 +510,7 @@ int main(int argc, char** argv) {
 
 
   auto weightDict = criterion.getWeightDict();
-  if(startEpoch > 0) {
+  if(startEpoch > 0 || true) {
     std::cout << "here" << std::endl;
     eval_loop(backbone, detr, val_ds);
   }
