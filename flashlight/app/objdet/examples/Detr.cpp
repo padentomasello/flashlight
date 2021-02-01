@@ -512,7 +512,9 @@ int main(int argc, char** argv) {
   auto weightDict = criterion.getWeightDict();
   if(startEpoch > 0) {
     std::cout << "here" << std::endl;
+    detr->eval();
     eval_loop(backbone, detr, val_ds);
+    detr->train();
   }
   for(int epoch= startEpoch; epoch < FLAGS_epochs; epoch++) {
     lrScheduler(epoch);
