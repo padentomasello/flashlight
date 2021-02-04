@@ -282,8 +282,7 @@ SetCriterion::LossDict SetCriterion::forward(
         allReduce(numBoxesArray);
       }
       numBoxes = numBoxesArray.scalar<int>();
-      numBoxes = std::min(numBoxes / fl::getWorldSize() , 1);
-      std::cout << "Rank: " << fl::getWorldRank() << " Num boxes post" << numBoxes << std::endl;
+      numBoxes = std::max(numBoxes / fl::getWorldSize() , 1);
 
 
       // TODO clamp number of boxes based on world size
