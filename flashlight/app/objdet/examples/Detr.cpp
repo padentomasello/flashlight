@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
   std::cout << "World rank: " << worldRank << std::endl;
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0,
+      1.0 / worldSize,
       true,
       true);
 
