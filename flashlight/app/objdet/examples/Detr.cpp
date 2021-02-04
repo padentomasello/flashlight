@@ -106,7 +106,7 @@ DEFINE_string(flagsfile, "", "Directory to dump images to run evaluation script 
 DEFINE_string(rundir, "", "Directory to dump images to run evaluation script on");
 DEFINE_string(eval_script,"/private/home/padentomasello/code/flashlight/flashlight/app/objdet/scripts/eval_coco.py", "Script to run evaluation on dumped tensors");
 DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ", "Set environment");
-
+DEFINE_bool(eval_only, false, "Weather to just run eval");
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
   gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -510,11 +510,14 @@ int main(int argc, char** argv) {
 
 
   auto weightDict = criterion.getWeightDict();
-  if(startEpoch > 0) {
+  if(startEpoch > 0 || FLAGS_eval_only) {
     std::cout << "here" << std::endl;
     detr->eval();
     eval_loop(backbone, detr, val_ds);
     detr->train();
+    if(FLAGS_eval_only) { 
+      return 0; 
+    }
   }
   for(int epoch= startEpoch; epoch < FLAGS_epochs; epoch++) {
     lrScheduler(epoch);

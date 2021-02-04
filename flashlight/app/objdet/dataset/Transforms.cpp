@@ -30,16 +30,17 @@ std::vector<af::array> crop(
     const af::array& image = in[0];
     const af::array croppedImage = ::crop(image, x, y, tw, th);
 
-    const af::array& boxes = in[3];
+    const af::array& boxes = in[4];
 
     const std::vector<int> translateVector = { x, y, x, y };
     const std::vector<int> maxSizeVector = { tw, th };
+    af::array targetSize = af::array(2, maxSizeVector.data());
 
     const af::array translateArray = af::array(4, translateVector.data());
     const af::array maxSizeArray = af::array(2, maxSizeVector.data());
 
     af::array croppedBoxes = boxes;
-    af::array labels = in[4];
+    af::array labels = in[5];
 
     if(!croppedBoxes.isempty()) {
       croppedBoxes = af::batchFunc(croppedBoxes, translateArray, af::operator-);
@@ -51,8 +52,28 @@ std::vector<af::array> crop(
       croppedBoxes = croppedBoxes(af::span, keep);
       labels  = labels(af::span, keep);
     }
-    return { croppedImage, in[1], in[2], croppedBoxes, labels };
+    return { croppedImage, targetSize, in[2], in[3], croppedBoxes, labels };
 };
+
+std::vector<af::array> hflip(
+    const std::vector<af::array>& in) {
+    af::array image = in[0];
+    const int w = image.dims(0);
+    const int h = image.dims(1);
+    image = image(af::seq(w - 1, 0, -1), af::span, af::span, af::span);
+
+    af::array bboxes = in[4];
+    if (!bboxes.isempty()) {
+      af::array bboxes_flip = af::array(bboxes.dims());
+      bboxes_flip(0, af::span) = (bboxes(2, af::span) * -1) + w;
+      bboxes_flip(1, af::span) = bboxes(1, af::span);
+      bboxes_flip(2, af::span) = (bboxes(0, af::span) * -1) + w;
+      bboxes_flip(3, af::span) = bboxes(3, af::span);
+      bboxes = bboxes_flip;
+    }
+    return { image, in[1], in[2], in[3], bboxes, in[5]};
+
+}
 
 } // namespace objdet
 } // namespace app

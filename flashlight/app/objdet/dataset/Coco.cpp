@@ -84,18 +84,6 @@ std::shared_ptr<const Dataset> bboxLoader(std::vector<BBoxVector> bboxes) {
   });
 }
 
-//BBoxLoader bboxLoader(std::vector<BBoxVector> bboxes) {
-  //return BBoxLoader(bboxes, [](BBoxVector bbox) {
-      //const int num_elements = bbox.size();
-      //// Bounding box coordinates + class label
-      //const int num_bboxes = num_elements / kElementsPerBbox;
-      //af::array full = af::array(kElementsPerBbox, num_bboxes, bbox.data());
-      //af::array result = full(af::seq(0, 3), af::span);
-      //return result;
-  //});
-//}
-//
-//
 
 std::pair<af::array, af::array> makeImageAndMaskBatch(
     const std::vector<af::array>& data
@@ -182,6 +170,7 @@ CocoData cocoBatchFunc(const std::vector<std::vector<af::array>>& batches) {
   std::vector<af::array> images(batches.size());
   std::vector<af::array> image_sizes(batches.size());
   std::vector<af::array> image_ids(batches.size());
+  std::vector<af::array> original_image_sizes(batches.size());
   std::vector<af::array> target_bboxes(batches.size());
   std::vector<af::array> target_classes(batches.size());
 
@@ -194,12 +183,15 @@ CocoData cocoBatchFunc(const std::vector<std::vector<af::array>>& batches) {
   std::transform(batches.begin(), batches.end(), image_ids.begin(),
       [](const std::vector<af::array>& in) { return in[2]; }
   );
-
-  std::transform(batches.begin(), batches.end(), target_bboxes.begin(),
+  std::transform(batches.begin(), batches.end(), original_image_sizes.begin(),
       [](const std::vector<af::array>& in) { return in[3]; }
   );
-  std::transform(batches.begin(), batches.end(), target_classes.begin(),
+
+  std::transform(batches.begin(), batches.end(), target_bboxes.begin(),
       [](const std::vector<af::array>& in) { return in[4]; }
+  );
+  std::transform(batches.begin(), batches.end(), target_classes.begin(),
+      [](const std::vector<af::array>& in) { return in[5]; }
   );
 
   af::array imageBatch, masks;
@@ -209,6 +201,7 @@ CocoData cocoBatchFunc(const std::vector<std::vector<af::array>>& batches) {
     masks,
     makeBatch(image_sizes),
     makeBatch(image_ids),
+    makeBatch(original_image_sizes),
     target_bboxes,
     target_classes
   };
@@ -255,7 +248,8 @@ std::shared_ptr<Dataset> cocoDataLoader(std::vector<std::string> fps) {
       long long int imageSizeArray[] = { image.dims(1), image.dims(0) };
       af::array targetSize = af::array(2, imageSizeArray);
       af::array imageId = af::constant(getImageId(fp), 1, s64);
-      std::vector<af::array> result = { image, targetSize, imageId };
+      // image, size, imageId, original_size
+      std::vector<af::array> result = { image, targetSize, imageId, targetSize };
       return result;
   });
 }
@@ -314,7 +308,7 @@ af::array resize(const af::array& in, const int resize) {
 //}
 
 std::vector<af::array> Normalize(const std::vector<af::array> in) {
-  auto boxes = in[3];
+  auto boxes = in[4];
 
   if(!boxes.isempty()) {
     auto image = in[0];
@@ -326,7 +320,7 @@ std::vector<af::array> Normalize(const std::vector<af::array> in) {
     af::array ratioArray = af::array(4, ratioVector.data());
     boxes = af::batchFunc(boxes, ratioArray, af::operator/);
   }
-  return { in[0], in[1], in[2], boxes, in[4] };
+  return { in[0], in[1], in[2], in[3], boxes, in[5] };
 
 }
 
@@ -355,10 +349,7 @@ TransformAllFunction randomSizeCrop(int minSize, int maxSize) {
   };
 };
 
-TransformAllFunction randomResize(
-    std::vector<int> sizes,
-    int maxsize) {
-  assert(sizes.size() > 0);
+std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int maxsize) {
 
   auto getSize = [](const af::array& in, int size, int maxSize = 0) {
     int w = in.dims(0);
@@ -386,35 +377,53 @@ TransformAllFunction randomResize(
     return std::make_pair(ow, oh);
   };
 
-  auto resizeCoco = [sizes, maxsize, getSize](std::vector<af::array> in) {
-    assert(in.size() == 5);
+
+  af::array image = inputs[0];
+  auto output_size = getSize(image, size, maxsize);
+  const af::dim4 originalDims = image.dims();
+  af::array resizedImage;
+  resizedImage = af::resize(image, output_size.first, output_size.second, AF_INTERP_BILINEAR);
+  const af::dim4 resizedDims = resizedImage.dims();
+
+
+  af::array boxes = inputs[4];
+  if (!boxes.isempty()) {
+    const float ratioWidth = float(resizedDims[0]) / float(originalDims[0]);
+    const float ratioHeight = float(resizedDims[1]) / float(originalDims[1]);
+
+    const std::vector<float> resizeVector = { ratioWidth, ratioHeight, ratioWidth, ratioHeight };
+    af::array resizedArray = af::array(4, resizeVector.data());
+    boxes = af::batchFunc(boxes, resizedArray, af::operator*);
+  }
+
+  long long int imageSizeArray[] = { resizedImage.dims(1), resizedImage.dims(0) };
+  af::array sizeArray = af::array(2, imageSizeArray);
+  return { resizedImage, sizeArray, inputs[2], inputs[3], boxes, inputs[5] };
+}
+
+TransformAllFunction randomResize(
+    std::vector<int> sizes,
+    int maxsize) {
+  assert(sizes.size() > 0);
+  auto resizeCoco = [sizes, maxsize](std::vector<af::array> in) {
+    assert(in.size() == 6);
     assert(sizes.size() > 0);
     int randomIndex = rand() % sizes.size();
     int size = sizes[randomIndex];
     const af::array originalImage = in[0];
-    auto output_size = getSize(originalImage, size, maxsize);
-    const af::dim4 originalDims = originalImage.dims();
-    af::array resizedImage;
-    resizedImage = af::resize(originalImage, output_size.first, output_size.second, AF_INTERP_BILINEAR);
-    const af::dim4 resizedDims = resizedImage.dims();
-
-
-    af::array boxes = in[3];
-    af::array targetSize = in[1];
-    if (!boxes.isempty()) {
-      const float ratioWidth = float(resizedDims[0]) / float(originalDims[0]);
-      const float ratioHeight = float(resizedDims[1]) / float(originalDims[1]);
-
-      const std::vector<float> resizeVector = { ratioWidth, ratioHeight, ratioWidth, ratioHeight };
-      af::array resizedArray = af::array(4, resizeVector.data());
-      boxes = af::batchFunc(boxes, resizedArray, af::operator*);
-    }
-
-    std::vector<af::array> result =  { resizedImage, in[1], in[2], boxes, in[4] };
-    return result;
-
+    return randomResize(in, size, maxsize);
   };
   return resizeCoco;
+}
+
+TransformAllFunction randomHorizontalFlip(float p) {
+  return [p](const std::vector<af::array>& in) {
+    if (static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) > p) {
+      return hflip(in);
+    } else {
+      return in;
+    }
+  };
 }
 
 
@@ -462,16 +471,17 @@ CocoDataset::CocoDataset(
    } else {
 
      std::vector<int> scales = {480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
-     TransformAllFunction trainTransform = randomSelect(
-         {  
+     TransformAllFunction trainTransform = compose({
+       randomHorizontalFlip(0.5),
+       randomSelect({  
          randomResize(scales, maxSize),
          compose({
-              randomResize({400, 500, 600}, -1),
-              randomSizeCrop(384, 600),
-              randomResize(scales, 1333)
+            randomResize({400, 500, 600}, -1),
+            randomSizeCrop(384, 600),
+            randomResize(scales, 1333)
           })
-         }
-      );
+       })
+     });
 
       transformed = std::make_shared<TransformAllDataset>(
            transformed, trainTransform);
