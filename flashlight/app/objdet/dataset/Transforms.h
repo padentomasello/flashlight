@@ -13,6 +13,9 @@ std::vector<af::array> crop(
     int tw,
     int th);
 
+std::vector<af::array> hflip(
+    const std::vector<af::array>& in);
+
 
 } // namespace objdet
 } // namespace app

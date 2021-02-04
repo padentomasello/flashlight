@@ -19,6 +19,7 @@ struct CocoData {
   af::array masks;
   af::array imageSizes;
   af::array imageIds;
+  af::array originalImageSizes;
   std::vector<af::array> target_boxes;
   std::vector<af::array> target_labels;
 };
