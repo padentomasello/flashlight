@@ -10,6 +10,7 @@
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/fl/autograd/autograd.h"
 #include "flashlight/fl/common/Defines.h"
+#include "flashlight/fl/distributed/DistributedApi.h"
 
 namespace {
 
@@ -274,6 +275,15 @@ SetCriterion::LossDict SetCriterion::forward(
       int numBoxes = std::accumulate(targetBoxes.begin(), targetBoxes.end(), 0,
           [](int curr, const Variable& label) { return curr + label.dims(1);  }
       );
+
+      af::array numBoxesArray = af::constant(numBoxes, { 1 }, af::dtype::s32);
+      if (isDistributedInit()) {
+        allReduce(numBoxesArray);
+      }
+      numBoxes = numBoxesArray.scalar<int>();
+      numBoxes = std::min(numBoxes / fl::getWorldSize() , 1);
+
+
       // TODO clamp number of boxes based on world size
       // https://github.com/fairinternal/detection-transformer/blob/master/models/detr.py#L168
 
