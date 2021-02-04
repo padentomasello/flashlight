@@ -276,7 +276,6 @@ SetCriterion::LossDict SetCriterion::forward(
           [](int curr, const Variable& label) { return curr + label.dims(1);  }
       );
 
-      std::cout << "Rank: " << fl::getWorldRank() << " Num boxes pre" << numBoxes << std::endl;
       af::array numBoxesArray = af::constant(numBoxes, { 1 }, af::dtype::s32);
       if (isDistributedInit()) {
         allReduce(numBoxesArray);
