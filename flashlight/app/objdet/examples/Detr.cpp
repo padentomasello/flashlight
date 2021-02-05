@@ -106,6 +106,7 @@ DEFINE_string(flagsfile, "", "Directory to dump images to run evaluation script 
 DEFINE_string(rundir, "", "Directory to dump images to run evaluation script on");
 DEFINE_string(eval_script,"/private/home/padentomasello/code/flashlight/flashlight/app/objdet/scripts/eval_coco.py", "Script to run evaluation on dumped tensors");
 DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ", "Set environment");
+DEFINE_int64(eval_break, -1, "Break eval after this many iters");
 DEFINE_bool(eval_only, false, "Weather to just run eval");
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
@@ -421,6 +422,9 @@ int main(int argc, char** argv) {
       //saveOutput(sample.imageSizes, sample.imageIds, output[1].array(), output[0].array(), ss.str());
       saveOutput(sample.originalImageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
       idx++;
+      if(FLAGS_eval_break > 0 && idx == FLAGS_eval_break) {
+        break;
+      }
     }
     if(FLAGS_enable_distributed) {
       barrier();
