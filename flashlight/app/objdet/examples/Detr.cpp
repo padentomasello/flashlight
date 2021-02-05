@@ -419,7 +419,7 @@ int main(int argc, char** argv) {
       auto output_first_last = output[0].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
       auto output_second_last = output[1].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
       //saveOutput(sample.imageSizes, sample.imageIds, output[1].array(), output[0].array(), ss.str());
-      saveOutput(sample.imageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
+      saveOutput(sample.originalImageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
       idx++;
     }
     if(FLAGS_enable_distributed) {
@@ -506,7 +506,6 @@ int main(int argc, char** argv) {
             opt,
             opt2);
   }
-  //AdamOptimizer backbone_opt(backbone->params(), FLAGS_lr * 0.1);
 
 
   auto weightDict = criterion.getWeightDict();
