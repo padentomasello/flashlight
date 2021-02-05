@@ -505,8 +505,8 @@ TEST(Pytorch, detr) {
   }
   model->eval();
   //backbone->eval();
-  std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch_trained";
-  //std::string modelPath = "/checkpoint/padentomasello/models/detr/pytorch_initializaition_dropout";
+  //std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch_trained";
+  std::string modelPath = "/checkpoint/padentomasello/models/detr/pytorch_scratch";
   fl::save(modelPath, model);
   fl::load(modelPath, model);
 
