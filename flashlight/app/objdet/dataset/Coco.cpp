@@ -472,7 +472,7 @@ CocoDataset::CocoDataset(
 
      std::vector<int> scales = {480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
      TransformAllFunction trainTransform = compose({
-       randomHorizontalFlip(0.5),
+       //randomHorizontalFlip(0.5),
        randomSelect({  
          randomResize(scales, maxSize),
          compose({
