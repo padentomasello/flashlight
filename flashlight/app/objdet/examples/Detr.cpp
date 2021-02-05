@@ -78,7 +78,7 @@ DEFINE_double(momentum, 0.9f, "Momentum");
 DEFINE_uint64(metric_iters, 5, "Print metric every");
 
 DEFINE_double(wd, 1e-4f, "Weight decay");
-DEFINE_uint64(epochs, 300, "Epochs");
+DEFINE_uint64(epochs, 500, "Epochs");
 DEFINE_uint64(eval_iters, 1, "Epochs");
 DEFINE_int64(
     world_rank,
@@ -487,9 +487,16 @@ int main(int argc, char** argv) {
       detr->paramsWithoutBackbone(), FLAGS_lr, beta1, beta2, epsilon, FLAGS_wd);
   auto opt2 = std::make_shared<AdamOptimizer>(
       detr->backboneParams(), FLAGS_lr * 0.1, beta1, beta2, epsilon, FLAGS_wd);
+  //auto lrScheduler = [&opt, &opt2](int epoch) {
+    //// Adjust learning rate every 30 epoch after 30
+    //const float newLr = FLAGS_lr * pow(0.1, epoch / 100);
+    //LOG(INFO) << "Setting learning rate to: " << newLr;
+    //opt->setLr(newLr);
+    //opt2->setLr(newLr * 0.1);
+  //};
   auto lrScheduler = [&opt, &opt2](int epoch) {
     // Adjust learning rate every 30 epoch after 30
-    const float newLr = FLAGS_lr * pow(0.1, epoch / 100);
+    const float newLr = FLAGS_lr * pow(0.1, epoch / 400);
     LOG(INFO) << "Setting learning rate to: " << newLr;
     opt->setLr(newLr);
     opt2->setLr(newLr * 0.1);
