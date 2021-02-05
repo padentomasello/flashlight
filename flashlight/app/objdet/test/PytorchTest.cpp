@@ -503,20 +503,23 @@ TEST(Pytorch, detr) {
     bn_ptr->setRunningVar(af::readArray((filename + "running").c_str(), i));
     i++;
   }
-  //model->eval();
+  model->eval();
   //backbone->eval();
-  //std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch";
-  std::string modelPath = "/checkpoint/padentomasello/models/detr/pytorch_initializaition_dropout";
+  std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch_trained";
+  //std::string modelPath = "/checkpoint/padentomasello/models/detr/pytorch_initializaition_dropout";
   fl::save(modelPath, model);
-  //fl::load(modelPath, model);
+  fl::load(modelPath, model);
 
   auto outputs = model->forward(inputs);
   af::array expPredLogits = af::readArray(filename.c_str(), "pred_logits");
   af::array expPredBoxes = af::readArray(filename.c_str(), "pred_boxes");
+  int lastLayerIdx = outputs[0].dims(3) - 1;
   auto predLogits = outputs[0];
   auto predBoxes = outputs[1];
-  ASSERT_TRUE(allClose(predBoxes.array(), expPredBoxes));
-  ASSERT_TRUE(allClose(predLogits.array(), expPredLogits));
+  auto predLogitsLast = outputs[0].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));;
+  auto predBoxesLast = outputs[1].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));;
+  ASSERT_TRUE(allClose(predBoxesLast, expPredBoxes));
+  ASSERT_TRUE(allClose(predLogitsLast, expPredLogits));
   auto matcher = HungarianMatcher(1.0f, 5.0f, 2.0f);
 
   std::unordered_map<std::string, float> lossWeightsBase = 
@@ -530,7 +533,7 @@ TEST(Pytorch, detr) {
       91,
       matcher,
       lossWeightsBase,
-      0.5f,
+      0.1f,
       losses);
   std::vector<fl::Variable> targetClasses = { {af::readArray(filename.c_str(), "target_labels"), false}};
   std::vector<fl::Variable> targetBoxes = { { af::readArray(filename.c_str(), "target_boxes"), false }};
