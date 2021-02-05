@@ -222,7 +222,6 @@ class TransformerEncoderLayer : public TransformerBaseLayer {
       { };
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override {
-    //assert(input.size() == 3);
     auto src = input[0];
     auto mask = input[1];
     auto pos = input[2];

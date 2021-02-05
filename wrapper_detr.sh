@@ -25,7 +25,7 @@ mkdir -p $EVAL_DIR
 $BUILD_DIR/flashlight/build/Detr train -lr 0.0001 --epochs 500 --batch_size 2 \
 --eval_dir $EVAL_DIR \
 --tryfromenv=eval_iters,data_dir,metric_iters,pretrained,print_params  \
---pytorch_init /checkpoint/padentomasello/models/detr/pytorch_initializaition_dropout \
+--pytorch_init /checkpoint/padentomasello/models/detr/pytorch_initializaition_dropout_final_saved \
 --eval_script $BUILD_DIR/flashlight/flashlight/app/objdet/scripts/eval_coco.py \
 --set_env "LD_LIBRARY_PATH=$BUILD_DIR/lib/:$LD_LIBRARY_PATH" \
 --rundir $RUN_DIR \
