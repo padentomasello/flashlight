@@ -70,6 +70,20 @@ std::string serializeGflags(const std::string& separator = "\n") {
   return serialized.str();
 }
 
+bool allClose(
+    const af::array& a,
+    const af::array& b,
+    const double precision = 1e-2) {
+  if ((a.numdims() != b.numdims()) || (a.dims() != b.dims())) {
+    std::cout << " A dims " << a.dims() << std::endl;
+    std::cout << " B dims " << b.dims() << std::endl;
+    std::cout << "Shape mismatch " << std::endl;
+    return false;
+  }
+  std::cout << " Max " << af::max<double>(af::abs(a - b)) << std::endl;
+  return (af::max<double>(af::abs(a - b)) < precision);
+}
+
 
 
 DEFINE_string(data_dir, "/private/home/padentomasello/data/coco3/", "Directory of imagenet data");
@@ -322,6 +336,8 @@ int main(int argc, char** argv) {
       numQueries,
       auxLoss);
 
+  std::shared_ptr<Detr> detr2;
+
   auto* curMemMgr =
           fl::MemoryManagerInstaller::currentlyInstalledMemoryManager();
       if (curMemMgr) {
@@ -522,6 +538,32 @@ int main(int argc, char** argv) {
       return 0; 
     }
   }
+
+  std::string filename = 
+    getRunFile(format("model_test.bin", 1), runIdx, runPath);
+  Serializer::save(filename, "0.1", config, detr, opt, opt2);
+  std::string version;
+  Serializer::load(filename, version, config, detr2, opt, opt2);
+  assert(allParamsClose(*detr2, *detr));
+  detr->eval();
+  detr2->eval();
+  for(auto& sample : *train_ds) {
+      std::vector<Variable> input =  { 
+        fl::Variable(sample.images, false),
+        fl::Variable(sample.masks, false) 
+      };
+      auto output = detr->forward(input);
+      auto output2 = detr2->forward(input);
+      for(int i = 0; i < output.size(); i++) {
+        assert(allClose(output[i], output2[i]));
+      }
+      std::cout << "Here" << std::endl;
+      break;
+  }
+  return 0;
+
+  
+
   for(int epoch= startEpoch; epoch < FLAGS_epochs; epoch++) {
     lrScheduler(epoch);
 
