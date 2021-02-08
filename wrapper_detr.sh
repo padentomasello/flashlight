@@ -22,7 +22,7 @@ RUN_DIR=/checkpoint/padentomasello/models/$SLURM_JOB_ID/
 mkdir -p $RUN_DIR
 mkdir -p $BUILD_DIR/rndv/
 mkdir -p $EVAL_DIR
-$BUILD_DIR/flashlight/build/Detr train -lr 0.0001 --epochs 500 --batch_size 2 \
+$BUILD_DIR/flashlight/build/Detr train -lr 0.0001 --epochs 1 --batch_size 2 \
 --eval_dir $EVAL_DIR \
 --tryfromenv=eval_iters,data_dir,metric_iters,pretrained,print_params  \
 --pytorch_init /checkpoint/padentomasello/models/detr/final/pytorch_init \

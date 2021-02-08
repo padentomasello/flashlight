@@ -539,28 +539,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::string filename = 
-    getRunFile(format("model_test.bin", 1), runIdx, runPath);
-  Serializer::save(filename, "0.1", config, detr, opt, opt2);
-  std::string version;
-  Serializer::load(filename, version, config, detr2, opt, opt2);
-  assert(allParamsClose(*detr2, *detr));
-  detr->eval();
-  detr2->eval();
-  for(auto& sample : *train_ds) {
-      std::vector<Variable> input =  { 
-        fl::Variable(sample.images, false),
-        fl::Variable(sample.masks, false) 
-      };
-      auto output = detr->forward(input);
-      auto output2 = detr2->forward(input);
-      for(int i = 0; i < output.size(); i++) {
-        assert(allClose(output[i], output2[i]));
-      }
-      std::cout << "Here" << std::endl;
-      break;
-  }
-  return 0;
 
   
 
@@ -690,4 +668,28 @@ int main(int argc, char** argv) {
       //saveModel(e);
     }
   }
+
+  std::string filename = 
+    getRunFile(format("model_test.bin", 1), runIdx, runPath);
+  Serializer::save(filename, "0.1", config, detr, opt, opt2);
+  std::string version;
+  Serializer::load(filename, version, config, detr2, opt, opt2);
+  assert(allParamsClose(*detr2, *detr));
+  detr->eval();
+  detr2->eval();
+  for(auto& sample : *train_ds) {
+      std::vector<Variable> input =  { 
+        fl::Variable(sample.images, false),
+        fl::Variable(sample.masks, false) 
+      };
+      auto output = detr->forward(input);
+      auto output2 = detr2->forward(input);
+      for(int i = 0; i < output.size(); i++) {
+        std::cout << " Checking output " << i << std::endl;
+        assert(allClose(output[i], output2[i]));
+      }
+      std::cout << "Here" << std::endl;
+      break;
+  }
+  return 0;
 }
