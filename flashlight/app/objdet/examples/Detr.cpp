@@ -517,6 +517,7 @@ int main(int argc, char** argv) {
 
   if (runStatus == "continue") {
     std::unordered_map<std::string, std::string> cfg; // unused
+    std::cout << " Loading module from " << reloadPath << std::endl;
     std::string version;
         Serializer::load(
             reloadPath,
@@ -655,13 +656,15 @@ int main(int argc, char** argv) {
     for(auto meter : meters) {
       meter.second.reset();
     }
-    std::string filename = 
-      getRunFile(format("model_last.bin", idx), runIdx, runPath);
-    config[kEpoch] = std::to_string(epoch);
-    Serializer::save(filename, "0.1", config, detr, opt, opt2);
-    filename = 
-      getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
-    Serializer::save(filename, "0.1", config, detr, opt, opt2);
+    if ((fl::getWorldRank() == 0)) {
+      std::string filename = 
+        getRunFile(format("model_last.bin", idx), runIdx, runPath);
+      config[kEpoch] = std::to_string(epoch);
+      Serializer::save(filename, "0.1", config, detr, opt, opt2);
+      filename = 
+        getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
+      Serializer::save(filename, "0.1", config, detr, opt, opt2);
+    }
     if(epoch % FLAGS_eval_iters == 0) {
       eval_loop(backbone, detr, val_ds);
       //eval_loop(detr, val_ds);
@@ -669,9 +672,13 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::string filename = 
-    getRunFile(format("model_test.bin", 1), runIdx, runPath);
-  Serializer::save(filename, "0.1", config, detr, opt, opt2);
+  std::string filename = getRunFile(format("model_test.bin", 1), runIdx, runPath);
+  if ((fl::getWorldRank() == 0)) {
+    Serializer::save(filename, "0.1", config, detr, opt, opt2);
+  }
+  if(FLAGS_enable_distributed) {
+      barrier();
+  }
   std::string version;
   Serializer::load(filename, version, config, detr2, opt, opt2);
   assert(allParamsClose(*detr2, *detr));
