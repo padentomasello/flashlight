@@ -121,6 +121,7 @@ DEFINE_string(rundir, "", "Directory to dump images to run evaluation script on"
 DEFINE_string(eval_script,"/private/home/padentomasello/code/flashlight/flashlight/app/objdet/scripts/eval_coco.py", "Script to run evaluation on dumped tensors");
 DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ", "Set environment");
 DEFINE_int64(eval_break, -1, "Break eval after this many iters");
+DEFINE_int64(train_break, -1, "Break eval after this many iters");
 DEFINE_bool(eval_only, false, "Weather to just run eval");
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
@@ -337,6 +338,7 @@ int main(int argc, char** argv) {
       auxLoss);
 
   std::shared_ptr<Detr> detr2;
+  std::shared_ptr<Detr> detr3;
 
   auto* curMemMgr =
           fl::MemoryManagerInstaller::currentlyInstalledMemoryManager();
@@ -649,6 +651,9 @@ int main(int argc, char** argv) {
         ss << std::endl;
         FL_LOG_MASTER(INFO) << ss.str();
       }
+      if(idx == FLAGS_train_break) {
+        break;
+      }
     }
     for(auto timer : timers) {
       timer.second.reset();
@@ -657,30 +662,37 @@ int main(int argc, char** argv) {
       meter.second.reset();
     }
     if ((fl::getWorldRank() == 0)) {
-      std::string filename = 
+      std::string filename_last = 
         getRunFile(format("model_last.bin", idx), runIdx, runPath);
       config[kEpoch] = std::to_string(epoch);
-      Serializer::save(filename, "0.1", config, detr, opt, opt2);
-      filename = 
+      Serializer::save(filename_last, "0.1", config, detr, opt, opt2);
+      std::string filename_iter = 
         getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
-      Serializer::save(filename, "0.1", config, detr, opt, opt2);
+      Serializer::save(filename_iter, "0.1", config, detr, opt, opt2);
+      std::string filename_test = getRunFile(format("model_test.bin", 1), runIdx, runPath);
+      Serializer::save(filename_test, "0.1", config, detr, opt, opt2);
+      std::string version;
+      Serializer::load(filename_iter, version, config, detr2, opt, opt2);
+      Serializer::load(filename_test, version, config, detr3, opt, opt2);
     }
     if(epoch % FLAGS_eval_iters == 0) {
       eval_loop(backbone, detr, val_ds);
+      eval_loop(backbone, detr2, val_ds);
+      eval_loop(backbone, detr3, val_ds);
       //eval_loop(detr, val_ds);
       //saveModel(e);
     }
   }
 
-  std::string filename = getRunFile(format("model_test.bin", 1), runIdx, runPath);
+  std::string filename_test = getRunFile(format("model_test.bin", 1), runIdx, runPath);
   if ((fl::getWorldRank() == 0)) {
-    Serializer::save(filename, "0.1", config, detr, opt, opt2);
+    Serializer::save(filename_test, "0.1", config, detr, opt, opt2);
   }
   if(FLAGS_enable_distributed) {
       barrier();
   }
   std::string version;
-  Serializer::load(filename, version, config, detr2, opt, opt2);
+  Serializer::load(filename_test, version, config, detr2, opt, opt2);
   assert(allParamsClose(*detr2, *detr));
   detr->eval();
   detr2->eval();
@@ -698,5 +710,4 @@ int main(int argc, char** argv) {
       std::cout << "Here" << std::endl;
       break;
   }
-  return 0;
 }
