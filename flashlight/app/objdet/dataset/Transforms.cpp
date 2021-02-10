@@ -1,4 +1,6 @@
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
+#include "flashlight/app/objdet/dataset/TransformAllDataset.h"
+#include "flashlight/app/objdet/dataset/Transforms.h"
 #include "flashlight/ext/image/af/Transforms.h"
 
 #include <assert.h>
@@ -13,12 +15,45 @@ crop(const af::array& in, const int x, const int y, const int w, const int h) {
   assert(y + h - 1 < in.dims(1));
   return in(af::seq(x, x + w - 1), af::seq(y, y + h - 1), af::span, af::span);
 }
+
+af::array resizeSmallest(const af::array& in, const int resize) {
+    const int w = in.dims(0);
+    const int h = in.dims(1);
+    int th, tw;
+    if (h > w) {
+      th = (resize * h) / w;
+      tw = resize;
+    } else {
+      th = resize;
+      tw = (resize * w) / h;
+    }
+    return af::resize(in, tw, th, AF_INTERP_BILINEAR);
+}
+
+af::array resize(const af::array& in, const int resize) {
+  return af::resize(in, resize, resize, AF_INTERP_BILINEAR);
+}
+
+
+int randomInt(int min, int max) {
+  return std::rand() % (max - min + 1) + min;
+}
 }
 
 
 namespace fl {
 namespace app {
 namespace objdet {
+
+////enum BboxIndices {
+  ////ImageIdx = 0,
+  ////TargetSizeIdx = 1,
+  ////ImageIdIdx = 2,
+  ////OriginalSizeIdx = 3,
+  ////BboxesIdx = 4,
+  ////ClassesIdx = 5
+////};
+
 
 std::vector<af::array> crop(
     const std::vector<af::array>& in,
@@ -27,10 +62,10 @@ std::vector<af::array> crop(
     int tw,
     int th
     ) {
-    const af::array& image = in[0];
+    const af::array& image = in[ImageIdx];
     const af::array croppedImage = ::crop(image, x, y, tw, th);
 
-    const af::array& boxes = in[4];
+    const af::array& boxes = in[BboxesIdx];
 
     const std::vector<int> translateVector = { x, y, x, y };
     const std::vector<int> maxSizeVector = { tw, th };
@@ -40,7 +75,7 @@ std::vector<af::array> crop(
     const af::array maxSizeArray = af::array(2, maxSizeVector.data());
 
     af::array croppedBoxes = boxes;
-    af::array labels = in[5];
+    af::array labels = in[ClassesIdx];
 
     if(!croppedBoxes.isempty()) {
       croppedBoxes = af::batchFunc(croppedBoxes, translateArray, af::operator-);
@@ -52,17 +87,17 @@ std::vector<af::array> crop(
       croppedBoxes = croppedBoxes(af::span, keep);
       labels  = labels(af::span, keep);
     }
-    return { croppedImage, targetSize, in[2], in[3], croppedBoxes, labels };
+    return { croppedImage, targetSize, in[ImageIdIdx], in[OriginalSizeIdx], croppedBoxes, labels };
 };
 
 std::vector<af::array> hflip(
     const std::vector<af::array>& in) {
-    af::array image = in[0];
+    af::array image = in[ImageIdx];
     const int w = image.dims(0);
     const int h = image.dims(1);
     image = image(af::seq(w - 1, 0, -1), af::span, af::span, af::span);
 
-    af::array bboxes = in[4];
+    af::array bboxes = in[BboxesIdx];
     if (!bboxes.isempty()) {
       af::array bboxes_flip = af::array(bboxes.dims());
       bboxes_flip(0, af::span) = (bboxes(2, af::span) * -1) + w;
@@ -71,8 +106,148 @@ std::vector<af::array> hflip(
       bboxes_flip(3, af::span) = bboxes(3, af::span);
       bboxes = bboxes_flip;
     }
-    return { image, in[1], in[2], in[3], bboxes, in[5]};
+    return { 
+      image, 
+      in[TargetSizeIdx], 
+      in[ImageIdIdx], 
+      in[OriginalSizeIdx], 
+      bboxes, 
+      in[ClassesIdx]
+    };
 
+}
+
+std::vector<af::array> Normalize(const std::vector<af::array>& in) {
+  auto boxes = in[BboxesIdx];
+
+  if(!boxes.isempty()) {
+    auto image = in[ImageIdx];
+    auto w = float(image.dims(0));
+    auto h = float(image.dims(1));
+
+    boxes = xyxy_to_cxcywh(boxes);
+    const std::vector<float> ratioVector = { w, h, w, h };
+    af::array ratioArray = af::array(4, ratioVector.data());
+    boxes = af::batchFunc(boxes, ratioArray, af::operator/);
+  }
+  return { 
+    in[ImageIdx], 
+    in[TargetSizeIdx], 
+    in[ImageIdIdx], 
+    in[OriginalSizeIdx], 
+    boxes, 
+    in[ClassesIdx] 
+  };
+
+}
+
+std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int maxsize) {
+
+  auto getSize = [](const af::array& in, int size, int maxSize = 0) {
+    int w = in.dims(0);
+    int h = in.dims(1);
+    //long size;
+    if(maxSize > 0) {
+      float minOriginalSize = std::min(w, h);
+      float maxOriginalSize = std::max(w, h);
+      if (maxOriginalSize / minOriginalSize * size > maxSize) {
+        size = round(maxSize * minOriginalSize / maxOriginalSize);
+      }
+    }
+
+    if( (w <= h && w == size) || (h <= w && h == size)) {
+        return std::make_pair(w, h);
+    }
+    int ow, oh;
+    if ( w < h ) {
+      ow = size;
+      oh = size * h / w;
+    } else {
+      oh = size;
+      ow = size * w / h;
+    }
+    return std::make_pair(ow, oh);
+  };
+
+
+  af::array image = inputs[ImageIdx];
+  auto output_size = getSize(image, size, maxsize);
+  const af::dim4 originalDims = image.dims();
+  af::array resizedImage;
+  resizedImage = af::resize(image, output_size.first, output_size.second, AF_INTERP_BILINEAR);
+  const af::dim4 resizedDims = resizedImage.dims();
+
+
+  af::array boxes = inputs[BboxesIdx];
+  if (!boxes.isempty()) {
+    const float ratioWidth = float(resizedDims[0]) / float(originalDims[0]);
+    const float ratioHeight = float(resizedDims[1]) / float(originalDims[1]);
+
+    const std::vector<float> resizeVector = { ratioWidth, ratioHeight, ratioWidth, ratioHeight };
+    af::array resizedArray = af::array(4, resizeVector.data());
+    boxes = af::batchFunc(boxes, resizedArray, af::operator*);
+  }
+
+  long long int imageSizeArray[] = { resizedImage.dims(1), resizedImage.dims(0) };
+  af::array sizeArray = af::array(2, imageSizeArray);
+  return { resizedImage, sizeArray, inputs[ImageIdIdx], inputs[OriginalSizeIdx], boxes, inputs[ClassesIdx] };
+}
+
+
+TransformAllFunction randomSelect(std::vector<TransformAllFunction> fns)
+{
+  return [fns](const std::vector<af::array>& in) {
+    TransformAllFunction randomFunc = fns[std::rand() % fns.size()];
+    return randomFunc(in);
+  };
+};
+
+TransformAllFunction randomSizeCrop(int minSize, int maxSize) {
+  return [minSize, maxSize](const std::vector<af::array>& in) {
+    const af::array& image = in[0];
+    const int w = image.dims(0);
+    const int h = image.dims(1);
+    const int tw = randomInt(minSize, std::min(w, maxSize));
+    const int th = randomInt(minSize, std::min(h, maxSize));
+    const int x = std::rand() % (w - tw + 1);
+    const int y = std::rand() % (h - th + 1);
+    return crop(in, x, y, tw, th);
+  };
+};
+
+TransformAllFunction randomResize(
+    std::vector<int> sizes,
+    int maxsize) {
+  assert(sizes.size() > 0);
+  auto resizeCoco = [sizes, maxsize](std::vector<af::array> in) {
+    assert(in.size() == 6);
+    assert(sizes.size() > 0);
+    int randomIndex = rand() % sizes.size();
+    int size = sizes[randomIndex];
+    const af::array originalImage = in[0];
+    return randomResize(in, size, maxsize);
+  };
+  return resizeCoco;
+}
+
+TransformAllFunction randomHorizontalFlip(float p) {
+  return [p](const std::vector<af::array>& in) {
+    if (static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) > p) {
+      return hflip(in);
+    } else {
+      return in;
+    }
+  };
+}
+
+TransformAllFunction compose(std::vector<TransformAllFunction> fns) {
+  return [fns](const std::vector<af::array>& in) {
+    std::vector<af::array> out = in; 
+    for(auto fn: fns) {
+      out = fn(out);
+    }
+    return out;
+  };
 }
 
 } // namespace objdet
