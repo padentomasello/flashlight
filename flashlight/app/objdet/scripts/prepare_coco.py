@@ -1,26 +1,47 @@
 from pycocotools.coco import COCO
 from datasets import build_dataset
+from PIL import Image
 import argparse
 import os
+import torch
 
-# def create_training_list(img_folder, ann_file, output_file):
-    # coco = COCO(ann_file)
-    # ids = list(sorted(coco.imgs.keys()))
+def create_training_list(img_folder, ann_file, output_file):
+    coco = COCO(ann_file)
+    ids = list(sorted(coco.imgs.keys()))
 
-    # with open(output_file, 'w') as out:
-        # for idx in ids:
-            # filepath = coco.loadImgs(idx)[0]['file_name']
-            # ann_ids = coco.getAnnIds(idx)
-            # anns = coco.loadAnns(ann_ids)
-            # bboxes = [ ann['bbox'] + [ float(ann['category_id']) ] for ann in anns]
-            # out.write(f'{os.path.join(img_folder, filepath)}\t')
-            # for box in bboxes:
+    with open(output_file, 'w') as out:
+        for idx in ids:
+            filepath = coco.loadImgs(idx)[0]['file_name']
+            img = Image.open(os.path.join(img_folder, filepath))
+            w, h = img.size
+            ann_ids = coco.getAnnIds(idx)
+            anns = coco.loadAnns(ann_ids)
+            bboxes = [ ann['bbox'] for ann in anns]
+            labels = [ ann['category_id'] for ann in anns]
+            # boxes = torch.as_tensor(bboxes).reshape(-1, 4);
+            boxes = torch.as_tensor(bboxes, dtype=torch.float32).reshape(-1, 4)
+            labels = torch.as_tensor(labels, dtype=torch.int64)
+            boxes[:, 2:] += boxes[:, :2]
+            boxes[:, 0::2].clamp_(min=0, max=w)
+            boxes[:, 1::2].clamp_(min=0, max=h)
+            keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
+            boxes = boxes[keep]
+            # import pdb; pdb.set_trace()
+            labels = labels[keep]
+            labels = labels.tolist()
+            filepath = os.path.join(img_folder, filepath);
+            # out.write(f'{}\t')
+            # print(boxes)
+            # print(labels)
+            strings = [filepath]
+            for (box, label) in zip(boxes, labels):
+                box_with_label = box.tolist() + [ label ]
                 # print(box)
-                # box_string = " ".join(map(str, box));
-                # out.write(f'{box_string}')
-                # break;
-            # out.write('\n')
-            # break;
+                box_string = " ".join(map(str, box_with_label));
+                strings.append(box_string)
+                # print(box_string)
+            out.write("\t".join(strings))
+            out.write('\n')
 
 def dump_dataset(image_set, image_folder, args):
     dataset = build_dataset(image_set, args);
@@ -55,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--crowdfree', action='store_true',
                         help='Remove crowd images from training on COCO')
     parser.add_argument('--masks', action='store_true')
-    parser.add_argument('-r', '--root', help='Root of COCO data', default='/datasets01/COCO/022719')
+    parser.add_argument('-r', '--coco_path', help='Root of COCO data', default='/datasets01/COCO/022719')
     parser.add_argument('-o', '--output_dir', help='Output dir .lst file', default='/private/home/padentomasello/data/coco-mini/')
     args = parser.parse_args()
 
@@ -65,7 +86,8 @@ if __name__ == "__main__":
     # parser.add_argument('-r', '--root', help='Root of COCO data', default='/datasets01/COCO/022719')
     # parser.add_argument('-o', '--output_dir', help='Output dir .lst file', default='/private/home/padentomasello/data/coco/')
     # args = parser.parse_args()
-    root = args.root
+    # root = args.root
+    root = args.coco_path
 
     anno_file_template = "instances_{}2017.json"
     # # Directory of Split -> (img_folder, annotation file)
@@ -75,5 +97,8 @@ if __name__ == "__main__":
     }
     for (split, (img_folder, ann_file)) in paths.items():
         img_folder = os.path.join(root, img_folder)
-        dump_dataset(split, img_folder, args)
+        ann_file = os.path.join(root, 'annotations', ann_file)
+        output_file = os.path.join(args.output_dir, split + '.lst')
+        create_training_list(img_folder, ann_file, output_file)
+
 
