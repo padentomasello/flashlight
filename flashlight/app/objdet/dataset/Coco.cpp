@@ -18,13 +18,7 @@ using namespace fl::app::objdet;
 using namespace fl::ext::image;
 using namespace fl;
 
-using BBoxVector = std::vector<float>;
-using BBoxLoader = LoaderDataset<BBoxVector>;
-using FilepathLoader = LoaderDataset<std::string>;
-
 static const int kElementsPerBbox = 4;
-static const int kMaxNumLabels = 64;
-
 
 std::pair<af::array, af::array> makeImageAndMaskBatch(
     const std::vector<af::array>& data
@@ -57,76 +51,20 @@ std::pair<af::array, af::array> makeImageAndMaskBatch(
   return std::make_pair(batcharr, maskarr);
 }
 
-af::array makeBatch(
-    const std::vector<af::array>& data
-    ) {
-  // Using default batching function
-  if (data.empty()) {
-    return af::array();
-  }
-  auto dims = data[0].dims();
-
-  for (const auto& d : data) {
-    if (d.dims() != dims) {
-      throw std::invalid_argument("dimension mismatch while batching dataset");
-    }
-  }
-
-  int ndims = (data[0].elements() > 1) ? dims.ndims() : 0;
-
-  if (ndims >= 4) {
-    throw std::invalid_argument("# of dims must be < 4 for batching");
-  }
-  dims[ndims] = data.size();
-  auto batcharr = af::array(dims, data[0].type());
-
-  for (size_t i = 0; i < data.size(); ++i) {
-    std::array<af::seq, 4> sel{af::span, af::span, af::span, af::span};
-    sel[ndims] = af::seq(i, i);
-    batcharr(sel[0], sel[1], sel[2], sel[3]) = data[i];
-  }
-  return batcharr;
-}
-
+// Since the bboxes and classes are variable lenght, we don't actually want
+// to batch them together.
 CocoData cocoBatchFunc(const std::vector<std::vector<af::array>>& batches) {
-  // TODO padentomasello refactor
-  std::vector<af::array> images(batches.size());
-  std::vector<af::array> image_sizes(batches.size());
-  std::vector<af::array> image_ids(batches.size());
-  std::vector<af::array> original_image_sizes(batches.size());
-  std::vector<af::array> target_bboxes(batches.size());
-  std::vector<af::array> target_classes(batches.size());
-
-  std::transform(batches.begin(), batches.end(), images.begin(),
-      [](const std::vector<af::array>& in) { return in[ImageIdx]; }
-  );
-  std::transform(batches.begin(), batches.end(), image_sizes.begin(),
-      [](const std::vector<af::array>& in) { return in[TargetSizeIdx]; }
-  );
-  std::transform(batches.begin(), batches.end(), image_ids.begin(),
-      [](const std::vector<af::array>& in) { return in[ImageIdIdx]; }
-  );
-  std::transform(batches.begin(), batches.end(), original_image_sizes.begin(),
-      [](const std::vector<af::array>& in) { return in[OriginalSizeIdx]; }
-  );
-
-  std::transform(batches.begin(), batches.end(), target_bboxes.begin(),
-      [](const std::vector<af::array>& in) { return in[BboxesIdx]; }
-  );
-  std::transform(batches.begin(), batches.end(), target_classes.begin(),
-      [](const std::vector<af::array>& in) { return in[ClassesIdx]; }
-  );
 
   af::array imageBatch, masks;
-  std::tie(imageBatch, masks) = makeImageAndMaskBatch(images);
+  std::tie(imageBatch, masks) = makeImageAndMaskBatch(batches[ImageIdx]);
   return {
     imageBatch,
     masks,
-    makeBatch(image_sizes),
-    makeBatch(image_ids),
-    makeBatch(original_image_sizes),
-    target_bboxes,
-    target_classes
+    makeBatch(batches[TargetSizeIdx]),
+    makeBatch(batches[ImageIdIdx]),
+    makeBatch(batches[OriginalSizeIdx]),
+    batches[BboxesIdx],
+    batches[ClassesIdx]
   };
 }
 
@@ -149,6 +87,7 @@ struct CocoDataSample {
   std::string filepath;
   std::vector<float> bboxes;
   std::vector<float> classes;
+
 };
 
 CocoDataset::CocoDataset(
@@ -161,6 +100,7 @@ CocoDataset::CocoDataset(
     int prefetch_size,
     bool val
   ) {
+
   // Create vector of CocoDataSample which will be loaded into arrayfire arrays
   std::vector<CocoDataSample> data;
   std::ifstream ifs(list_file);
@@ -178,20 +118,16 @@ CocoDataset::CocoDataset(
       std::vector<float> bboxes;
       std::vector<float> classes;
       item = line.find(delim, item);
-      if(item == std::string::npos) {
-        data.emplace_back(CocoDataSample{ filepath, bboxes, classes });
-        continue;
-      }
       while(item != std::string::npos) {
         int pos = item;
         int next;
         for(int i = 0; i < 4; i++) {
-          next = line.find(bbox_delim, pos + 2);
+          next = line.find(bbox_delim, pos + 1);
           assert(next != std::string::npos);
           bboxes.emplace_back(std::stof(line.substr(pos, next - pos)));
           pos = next;
         }
-        next = line.find(bbox_delim, pos + 2);
+        next = line.find(bbox_delim, pos + 1);
         classes.emplace_back(std::stod(line.substr(pos, next - pos)));
         item = line.find(delim, pos);
       }
@@ -199,11 +135,13 @@ CocoDataset::CocoDataset(
   }
   assert(data.size() > 0);
 
-  // Create base dataset dataset
+  // Now define how to load the data from CocoDataSampoles in arrayfire
   auto base = std::make_shared<LoaderDataset<CocoDataSample>>(data,
     [](const CocoDataSample& sample) {
       af::array image = loadJpeg(sample.filepath);
+
       long long int imageSizeArray[] = { image.dims(1), image.dims(0) };
+
       af::array targetSize = af::array(2, imageSizeArray);
       af::array imageId = af::constant(getImageId(sample.filepath), 1, s64);
 
@@ -214,6 +152,8 @@ CocoDataset::CocoDataset(
         bboxes = af::array(kElementsPerBbox, num_bboxes, sample.bboxes.data());
         classes = af::array(1, num_bboxes, sample.classes.data());
       } else {
+        // Arrayfire doesn't allow you to create 0 length dimension on anything
+        // other than the first dimension so we need this switch
         bboxes = af::array(0, 1, 1, 1);
         classes = af::array(0, 1, 1, 1);
       }
@@ -253,23 +193,20 @@ CocoDataset::CocoDataset(
       transformed, transformfns);
 
   auto next = transformed;
+  // Skip shuffling if doing eval.
   if (!val) {
     shuffled_ = std::make_shared<ShuffleDataset>(next);
     next = shuffled_;
   }
-  //auto next = transformed;
-  //
   auto permfn = [world_size, world_rank](int64_t idx) {
     return (idx * world_size) + world_rank;
   };
   auto sampled = std::make_shared<ResampleDataset>(
     next, permfn, next->size() / world_size);
 
-  //auto prefetch = std::make_shared<PrefetchDataset>(sampled, num_threads, prefetch_size);
-  auto prefetch = sampled;
+  auto prefetch = std::make_shared<PrefetchDataset>(sampled, num_threads, prefetch_size);
   batched_ = std::make_shared<BatchTransformDataset<CocoData>>(
       prefetch, batch_size, BatchDatasetPolicy::SKIP_LAST, cocoBatchFunc);
-
 }
 
 void CocoDataset::resample() {
@@ -277,25 +214,6 @@ void CocoDataset::resample() {
     shuffled_->resample();
   }
 }
-
-
-//std::shared_ptr<Dataset> CocoDataset::getImages(
-    //const std::string list_file,
-    //std::vector<ImageTransform>& transformfns) {
-  //const std::vector<std::string> filepaths = parseImageFilepaths(list_file);
-  //auto images = cocoDataLoader(filepaths);
-  //return transform(images, transformfns);
-//}
-
-//std::shared_ptr<Dataset> CocoDataset::getLabels(std::string list_file) {
-    //const std::vector<BBoxVector> bboxes = parseBoundingBoxes(list_file);
-    //auto bboxLabels = bboxLoader(bboxes);
-    //auto classLabels = classLoader(bboxes);
-    //return merge({bboxLabels, classLabels});
-//}
-
-
-
 int64_t CocoDataset::size() const {
   return batched_->size();
 }

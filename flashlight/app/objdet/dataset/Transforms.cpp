@@ -40,19 +40,9 @@ int randomInt(int min, int max) {
 }
 }
 
-
 namespace fl {
 namespace app {
 namespace objdet {
-
-////enum BboxIndices {
-  ////ImageIdx = 0,
-  ////TargetSizeIdx = 1,
-  ////ImageIdIdx = 2,
-  ////OriginalSizeIdx = 3,
-  ////BboxesIdx = 4,
-  ////ClassesIdx = 5
-////};
 
 
 std::vector<af::array> crop(
