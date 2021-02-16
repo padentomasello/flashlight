@@ -72,7 +72,7 @@ std::string serializeGflags(const std::string& separator = "\n") {
 
 
 
-DEFINE_string(data_dir, "/private/home/padentomasello/data/coco3/", "Directory of imagenet data");
+DEFINE_string(data_dir, "/private/home/padentomasello/data/coco_new/", "Directory of imagenet data");
 DEFINE_double(lr, 0.0001f, "Learning rate");
 DEFINE_double(momentum, 0.9f, "Momentum");
 DEFINE_uint64(metric_iters, 5, "Print metric every");
