@@ -97,10 +97,8 @@ void evalLoop(
   mkdir_command << "mkdir -p " << FLAGS_eval_dir << fl::getWorldRank();
   system(mkdir_command.str().c_str());
   for(auto& sample : *dataset) {
-    std::vector<Variable> input =  { 
-      fl::Variable(sample.images, false),  
-      fl::Variable(sample.masks, false) 
-    };
+    std::vector<Variable> input = {fl::Variable(sample.images, false),
+                                   fl::Variable(sample.masks, false)};
     auto output = model->forward(input);
     std::stringstream ss;
     ss << FLAGS_eval_dir << fl::getWorldRank() << "/detection" << idx << ".array";
@@ -262,7 +260,7 @@ int main(int argc, char** argv) {
   detr->train();
 
   /////////////////////////
-  // Build criterion 
+  // Build criterion
   /////////////////////////
   const float setCostClass = 1.f;
   const float setCostBBox = 5.f;
@@ -294,7 +292,7 @@ int main(int argc, char** argv) {
   auto weightDict = criterion.getWeightDict();
 
   ////////////////////
-  // Optimizers 
+  // Optimizers
   ////////////////////
   const float beta1 = 0.9;
   const float beta2 = 0.999;
@@ -398,10 +396,8 @@ int main(int argc, char** argv) {
     lrScheduler(epoch);
     train_ds->resample();
     for(auto& sample : *train_ds) {
-      std::vector<Variable> input =  { 
-        fl::Variable(sample.images, false),
-        fl::Variable(sample.masks, false) 
-      };
+      std::vector<Variable> input = {fl::Variable(sample.images, false),
+                                     fl::Variable(sample.masks, false)};
       auto output = detr->forward(input);
 
       timers["forward"].stop();
@@ -494,8 +490,8 @@ int main(int argc, char** argv) {
         getRunFile(format("model_last.bin", idx), runIdx, runPath);
       config[kEpoch] = std::to_string(epoch);
       Serializer::save(filename, "0.1", config, detr, opt, opt2);
-      filename = 
-        getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
+      filename =
+          getRunFile(format("model_iter_%03d.bin", epoch), runIdx, runPath);
       Serializer::save(filename, "0.1", config, detr, opt, opt2);
     }
     if(epoch % FLAGS_eval_iters == 0) {

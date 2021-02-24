@@ -11,7 +11,7 @@ namespace fl {
 namespace app {
 namespace objdet {
 
-af::array xyxy_to_cxcywh(const af::array& bboxes) {
+af::array xyxy2cxcywh(const af::array& bboxes) {
   auto x0 = bboxes.row(0);
   auto y0 = bboxes.row(1);
   auto x1 = bboxes.row(2);
@@ -21,7 +21,7 @@ af::array xyxy_to_cxcywh(const af::array& bboxes) {
   return result;
 }
 
-fl::Variable cxcywh_to_xyxy(const Variable& bboxes) {
+fl::Variable cxcywh2xyxy(const Variable& bboxes) {
   auto transformed = Variable(af::constant(0, 4, bboxes.dims(1)), true);
   auto x_c = bboxes.row(0);
   auto y_c = bboxes.row(1);
@@ -53,7 +53,7 @@ fl::Variable flatten(const fl::Variable& x, int start, int stop) {
   return fl::moddims(x, new_dims);
 };
 
-fl::Variable box_area(const fl::Variable& bboxes) {
+fl::Variable boxArea(const fl::Variable& bboxes) {
   auto x0 = bboxes.row(0);
   auto y0 = bboxes.row(1);
   auto x1 = bboxes.row(2);
@@ -63,7 +63,6 @@ fl::Variable box_area(const fl::Variable& bboxes) {
 }
 
 typedef Variable(* batchFuncVar_t) (const Variable& lhs, const Variable& rhs);
-
 
 Variable cartesian(
     const Variable& x,
@@ -81,11 +80,11 @@ Variable cartesian(
   return fn(x_mod, y_mod);
 }
 
-std::tuple<fl::Variable, fl::Variable> box_iou(
+std::tuple<fl::Variable, fl::Variable> boxIou(
     const fl::Variable& bboxes1,
     const fl::Variable& bboxes2) {
-  auto area1 = box_area(bboxes1);
-  auto area2 = box_area(bboxes2);
+  auto area1 = boxArea(bboxes1);
+  auto area2 = boxArea(bboxes2);
   auto lt = cartesian(bboxes1.rows(0, 1), bboxes2.rows(0, 1), fl::max);
   auto rb = cartesian(bboxes1.rows(2, 3), bboxes2.rows(2, 3), min);
   auto wh = max((rb - lt), 0.0);
@@ -97,13 +96,15 @@ std::tuple<fl::Variable, fl::Variable> box_iou(
   return std::tie(iou, uni);
 }
 
-fl::Variable generalized_box_iou(const fl::Variable& bboxes1, const fl::Variable& bboxes2) {
+fl::Variable generalizedBoxIou(
+    const fl::Variable& bboxes1,
+    const fl::Variable& bboxes2) {
   // Make sure all boxes are properly formed
   assert(af::count(allTrue(bboxes1.array().rows(2, 3) >= bboxes1.array().rows(0, 1))).scalar<uint32_t>());
   assert(af::count(allTrue(bboxes2.array().rows(2, 3) >= bboxes2.array().rows(0, 1))).scalar<uint32_t>());
 
   Variable iou, uni;
-  std::tie(iou, uni) = box_iou(bboxes1, bboxes2);
+  std::tie(iou, uni) = boxIou(bboxes1, bboxes2);
   auto lt = cartesian(bboxes1.rows(0, 1), bboxes2.rows(0, 1), min);
   auto rb = cartesian(bboxes1.rows(2, 3), bboxes2.rows(2, 3), max);
   auto wh = max((rb - lt), 0.0);
@@ -112,7 +113,7 @@ fl::Variable generalized_box_iou(const fl::Variable& bboxes1, const fl::Variable
   return iou - (area - uni) / area;
 }
 
-Variable l1_loss(const Variable& input, const Variable& target) {
+Variable l1Loss(const Variable& input, const Variable& target) {
   return flatten(sum(abs(input - target), {0} ), 0, 1);
 }
 

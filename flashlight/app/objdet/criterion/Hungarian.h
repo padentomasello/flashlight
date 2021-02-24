@@ -12,9 +12,9 @@ public:
   HungarianMatcher() = default;
 
   HungarianMatcher(
-      const float cost_class,
-      const float cost_bbox,
-      const float cost_giou);
+      const float costClass,
+      const float costBbox,
+      const float costGiou);
 
   std::vector<std::pair<af::array, af::array>> forward(
       const Variable& predBoxes,
@@ -24,20 +24,18 @@ public:
 
 
 private:
-  float cost_class_;
-  float cost_bbox_;
-  float cost_giou_;
+ float costClass_;
+ float costBbox_;
+ float costGiou_;
 
-  // First is SrcIdx, second is ColIdx
-   std::pair<af::array, af::array> matchBatch(
-       const Variable& predBoxes,
-       const Variable& predLogits,
-       const Variable& targetBoxes,
-       const Variable& targetClasses) const;
+ // First is SrcIdx, second is ColIdx
+ std::pair<af::array, af::array> matchBatch(
+     const Variable& predBoxes,
+     const Variable& predLogits,
+     const Variable& targetBoxes,
+     const Variable& targetClasses) const;
 
-  af::array getCostMatrix(
-      const Variable& input,
-      const Variable& target);
+ af::array getCostMatrix(const Variable& input, const Variable& target);
 
 };
 

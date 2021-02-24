@@ -27,11 +27,10 @@ namespace app {
 namespace objdet {
 
 HungarianMatcher::HungarianMatcher(
-    const float cost_class,
-    const float cost_bbox,
-    const float cost_giou) :
-  cost_class_(cost_class), cost_bbox_(cost_bbox), cost_giou_(cost_giou) {
-};
+    const float costClass,
+    const float costBbox,
+    const float costGiou)
+    : costClass_(costClass), costBbox_(costBbox), costGiou_(costGiou){};
 
 std::pair<af::array, af::array> HungarianMatcher::matchBatch(
     const Variable& predBoxes,
@@ -49,25 +48,23 @@ std::pair<af::array, af::array> HungarianMatcher::matchBatch(
 
   // Class cost
   auto outProbs = softmax(predLogits, 0);
-  auto cost_class = transpose((0 - outProbs(targetClasses.array(), af::span)));
-  //auto cost_class = (1 - outProbs(targetClasses.array(), af::span));
+  auto costClass = transpose((0 - outProbs(targetClasses.array(), af::span)));
+  // auto costClass = (1 - outProbs(targetClasses.array(), af::span));
   //
 
-
   // Generalized IOU loss
-  auto cost_giou =  0 - generalized_box_iou(
-      cxcywh_to_xyxy(predBoxes),
-      cxcywh_to_xyxy(targetBoxes)
-  );
+  auto costGiou =
+      0 - generalizedBoxIou(cxcywh2xyxy(predBoxes), cxcywh2xyxy(targetBoxes));
 
   // Bbox Cost
-  Variable cost_bbox = cartesian(predBoxes, targetBoxes,
-      [](const Variable& x, const Variable& y) {
+  Variable costBbox = cartesian(
+      predBoxes, targetBoxes, [](const Variable& x, const Variable& y) {
         return sum(abs(x - y), {0});
-    });
-  cost_bbox = flatten(cost_bbox, 0, 1);
+      });
+  costBbox = flatten(costBbox, 0, 1);
 
-  auto cost = cost_bbox_ * cost_bbox + cost_class_ * cost_class + cost_giou_ * cost_giou;
+  auto cost =
+      costBbox_ * costBbox + costClass_ * costClass + costGiou_ * costGiou;
   return ::hungarian(cost.array());
 
 

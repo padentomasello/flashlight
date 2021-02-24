@@ -7,34 +7,6 @@
 
 namespace {
 
-// TODO consolidate
-af::array
-crop(const af::array& in, const int x, const int y, const int w, const int h) {
-
-  assert(x + w - 1 < in.dims(0));
-  assert(y + h - 1 < in.dims(1));
-  return in(af::seq(x, x + w - 1), af::seq(y, y + h - 1), af::span, af::span);
-}
-
-af::array resizeSmallest(const af::array& in, const int resize) {
-    const int w = in.dims(0);
-    const int h = in.dims(1);
-    int th, tw;
-    if (h > w) {
-      th = (resize * h) / w;
-      tw = resize;
-    } else {
-      th = resize;
-      tw = (resize * w) / h;
-    }
-    return af::resize(in, tw, th, AF_INTERP_BILINEAR);
-}
-
-af::array resize(const af::array& in, const int resize) {
-  return af::resize(in, resize, resize, AF_INTERP_BILINEAR);
-}
-
-
 int randomInt(int min, int max) {
   return std::rand() % (max - min + 1) + min;
 }
@@ -44,7 +16,6 @@ namespace fl {
 namespace app {
 namespace objdet {
 
-
 std::vector<af::array> crop(
     const std::vector<af::array>& in,
     int x,
@@ -53,7 +24,7 @@ std::vector<af::array> crop(
     int th
     ) {
     const af::array& image = in[ImageIdx];
-    const af::array croppedImage = ::crop(image, x, y, tw, th);
+    const af::array croppedImage = fl::ext::image::crop(image, x, y, tw, th);
 
     const af::array& boxes = in[BboxesIdx];
 
@@ -115,7 +86,7 @@ std::vector<af::array> normalize(const std::vector<af::array>& in) {
     auto w = float(image.dims(0));
     auto h = float(image.dims(1));
 
-    boxes = xyxy_to_cxcywh(boxes);
+    boxes = xyxy2cxcywh(boxes);
     const std::vector<float> ratioVector = { w, h, w, h };
     af::array ratioArray = af::array(4, ratioVector.data());
     boxes = af::batchFunc(boxes, ratioArray, af::operator/);
@@ -195,7 +166,7 @@ TransformAllFunction Normalize(std::vector<float> meanVector, std::vector<float>
       auto w = float(image.dims(0));
       auto h = float(image.dims(1));
 
-      boxes = xyxy_to_cxcywh(boxes);
+      boxes = xyxy2cxcywh(boxes);
       const std::vector<float> ratioVector = { w, h, w, h };
       af::array ratioArray = af::array(4, ratioVector.data());
       boxes = af::batchFunc(boxes, ratioArray, af::operator/);
@@ -213,9 +184,8 @@ TransformAllFunction Normalize(std::vector<float> meanVector, std::vector<float>
       in[ClassesIdx] 
     };
     return outputs;
-  }; // 
+  };
 }
-
 
 TransformAllFunction randomSelect(std::vector<TransformAllFunction> fns)
 {

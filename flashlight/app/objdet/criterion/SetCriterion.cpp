@@ -324,10 +324,8 @@ SetCriterion::LossDict SetCriterion::lossBoxes(
   }
   auto tgtBoxes = fl::concatenate(permuted, 1);
 
-  auto costGiou =  generalized_box_iou(
-      cxcywh_to_xyxy(srcBoxes), 
-      cxcywh_to_xyxy(tgtBoxes)
-  );
+  auto costGiou =
+      generalizedBoxIou(cxcywh2xyxy(srcBoxes), cxcywh2xyxy(tgtBoxes));
 
   // Extract diagnal
   auto dims = costGiou.dims();
@@ -335,7 +333,7 @@ SetCriterion::LossDict SetCriterion::lossBoxes(
   costGiou = 1 - index(costGiou, { rng, rng, af::array(), af::array() });
   costGiou = sum(costGiou, { 0 } ) / numBoxes;
 
-  auto lossBbox = l1_loss(srcBoxes, tgtBoxes);
+  auto lossBbox = l1Loss(srcBoxes, tgtBoxes);
   lossBbox = sum(lossBbox, { 0 } ) / numBoxes;
 
   return { {"lossGiou", costGiou}, {"lossBbox", lossBbox }};

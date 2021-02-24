@@ -14,7 +14,7 @@ T(const std::vector<std::vector<af::array>>&)>;
  * This is a slightly more generalized batching dataset than allows you to
  * return any type from the batched arrays. This is useful for Object detection
  * because we would like to keep the target boxes and classes as a seperate
- * unbacked vector of arrays, while still batching the images
+ * unbatched vector of arrays, while still batching the images
  */
 template<typename T>
 class BatchTransformDataset {

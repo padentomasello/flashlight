@@ -10,6 +10,14 @@ namespace objdet {
 
 using TransformAllFunction = std::function<std::vector<af::array>(const std::vector<af::array>&)>;
 
+/**
+ * A view into a dataset where all arrays are transformed using the same
+ * function.
+ *
+ * This is valuable for object detection, because transforms are not
+ * independent of each other. For example, a random crop must crop the iamge
+ * but then also adjust the bounding boxes accordinly
+ */
 class TransformAllDataset : public Dataset {
 
 public:

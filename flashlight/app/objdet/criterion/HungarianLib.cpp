@@ -10,7 +10,6 @@ enum Mark: int {
   Prime = 2
 };
 
-
 void findUncoveredZero(float* costs, int* colCover, int* rowCover, int nrows, int ncols, 
     int* row, int* col) {
   bool done = false;
@@ -48,7 +47,7 @@ int findStarInRow(int* marks, int row, int nrows, int ncols) {
 
 // M x N matrix M = nrows, N = ncols
 // For each row, substract it's minimum value
-int step_one(float* costs, const int nrows, const int ncols) {
+int stepOne(float* costs, const int nrows, const int ncols) {
   for (int r = 0; r < nrows; r++) {
     float min_val = std::numeric_limits<float>::max();
     for (int c = 0; c < ncols; c++) {
@@ -65,7 +64,13 @@ int step_one(float* costs, const int nrows, const int ncols) {
 }
 
 // Iterate through rows, and mark 0s with '1' (Star) if they have not already been covered by a previous marking
-int step_two(float* costs, int* marks, int* colCover, int* rowCover, const int nrows, const int ncols) {
+int stepTwo(
+    float* costs,
+    int* marks,
+    int* colCover,
+    int* rowCover,
+    const int nrows,
+    const int ncols) {
   for(int r = 0; r < nrows; r++) {
     for(int c = 0; c < ncols; c++) {
       float cost = costs[c * nrows + r];
@@ -86,7 +91,7 @@ int step_two(float* costs, int* marks, int* colCover, int* rowCover, const int n
 }
 
 // Count the number of lines needed to cover all "Stars"
-int step_three(int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
+int stepThree(int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
   for(int r = 0; r < nrows; r++) {
     for(int c = 0; c < ncols; c++) {
       const int mark = marks[c * nrows + r];
@@ -108,8 +113,15 @@ int step_three(int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
 
 // Find a noncovered zero and "prime it". If there are no uncovered zeros in the row containing
 // this zero, go to 5. Otherwise, cover this row, and uncovered column containing starred zero.
-// Continue until there are no more uncovered zeros left. Then go to 6. 
-int step_four(float* costs, int* marks, int* colCover, int* rowCover, int nrows, int ncols, int* firstPathRow,
+// Continue until there are no more uncovered zeros left. Then go to 6.
+int stepFour(
+    float* costs,
+    int* marks,
+    int* colCover,
+    int* rowCover,
+    int nrows,
+    int ncols,
+    int* firstPathRow,
     int* firstPathCol) {
   bool done = false;
   while(!done) {
@@ -183,7 +195,16 @@ void erasePrimes(int* marks, int nrows, int ncols) {
   }
 }
 
-int step_five(float* costs, int* marks, int* colCover, int* rowCover, int* path, int firstPathRow, int firstPathCol, int nrows, int ncols) {
+int stepFive(
+    float* costs,
+    int* marks,
+    int* colCover,
+    int* rowCover,
+    int* path,
+    int firstPathRow,
+    int firstPathCol,
+    int nrows,
+    int ncols) {
   int r = -1;
   int c = -1;
   int pathCount = 1;
@@ -228,7 +249,13 @@ float findSmallestNotCovered(float* costs, int* colCover, int* rowCover, int nro
   return minValue;
 }
 
-int step_six(float* costs, int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
+int stepSix(
+    float* costs,
+    int* marks,
+    int* colCover,
+    int* rowCover,
+    int nrows,
+    int ncols) {
   float minVal = findSmallestNotCovered(costs, colCover, rowCover, nrows, ncols);
   for(int c = 0; c < ncols; c++) {
     for(int r = 0; r < nrows; r++) {
@@ -274,23 +301,41 @@ void hungarian(float* costs, int* assignments, int M, int N) {
   while(!done) {
     switch(step) {
       case 1:
-        step = step_one(costs, M, N);
+        step = stepOne(costs, M, N);
         break;
       case 2:
-        step = step_two(costs, assignments, colCover.data(), rowCover.data(), M, N);
+        step =
+            stepTwo(costs, assignments, colCover.data(), rowCover.data(), M, N);
         break;
       case 3:
-        step = step_three(assignments, colCover.data(), rowCover.data(), M, N);
+        step = stepThree(assignments, colCover.data(), rowCover.data(), M, N);
         break;
       case 4:
-        step = step_four(costs, assignments, colCover.data(), rowCover.data(), M, N, &firstPathRow,
+        step = stepFour(
+            costs,
+            assignments,
+            colCover.data(),
+            rowCover.data(),
+            M,
+            N,
+            &firstPathRow,
             &firstPathCol);
         break;
       case 5:
-        step = step_five(costs, assignments, colCover.data(), rowCover.data(), paths.data(), firstPathRow, firstPathCol, M, N);
+        step = stepFive(
+            costs,
+            assignments,
+            colCover.data(),
+            rowCover.data(),
+            paths.data(),
+            firstPathRow,
+            firstPathCol,
+            M,
+            N);
         break;
       case 6:
-        step = step_six(costs, assignments, colCover.data(), rowCover.data(), M, N);
+        step =
+            stepSix(costs, assignments, colCover.data(), rowCover.data(), M, N);
         break;
       case 7:
         done = true;
