@@ -27,15 +27,13 @@
 #include "flashlight/fl/optim/optim.h"
 #include "flashlight/lib/common/String.h"
 #include "flashlight/lib/common/String.h"
-//#include "flashlight/lib/common/System.h"
 
-
-using fl::lib::fileExists;
-using fl::lib::format;
 using fl::ext::Serializer;
-using fl::lib::getCurrentDate;
 using fl::ext::getRunFile;
 using fl::ext::serializeGflags;
+using fl::lib::fileExists;
+using fl::lib::format;
+using fl::lib::getCurrentDate;
 
 
 #define FL_LOG_MASTER(lvl) LOG_IF(lvl, (fl::getWorldRank() == 0))
@@ -154,11 +152,6 @@ int main(int argc, char** argv) {
     LOG(FATAL) << "'runpath' specified by --rundir, --runname cannot be empty";
   }
 
-  std::cout << serializeGflags() << std::endl;
-  //const std::string label_path = FLAGS_data_dir + "labels.txt";
-  //const std::string train_list = FLAGS_data_dir + "train";
-  //const std::string val_list = FLAGS_data_dir + "val";
-
   /////////////////////////
   // Setup distributed training
   ////////////////////////
@@ -169,12 +162,11 @@ int main(int argc, char** argv) {
         8,
         FLAGS_rndv_filepath);
   }
-  af::info();
+
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
 
-
-  std::string cmdLine= fl::lib::join(" ", argvs);
+  const std::string cmdLine= fl::lib::join(" ", argvs);
   std::unordered_map<std::string, std::string> config = {
       {kProgramName, exec},
       {kCommandLine, cmdLine},
@@ -185,9 +177,6 @@ int main(int argc, char** argv) {
       {kTimestamp, getCurrentDate() + ", " + getCurrentDate()},
       {kRunIdx, std::to_string(runIdx)},
       {kRunPath, runPath}};
-  //af::setDevice(worldRank);
-  //af::setSeed(worldSize);
-  std::cout << "World rank: " << worldRank << std::endl;
 
   auto reducer = std::make_shared<fl::CoalescingReducer>(
       1.0,
