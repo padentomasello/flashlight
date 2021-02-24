@@ -107,7 +107,7 @@ std::vector<af::array> hflip(
 
 }
 
-std::vector<af::array> Normalize(const std::vector<af::array>& in) {
+std::vector<af::array> normalize(const std::vector<af::array>& in) {
   auto boxes = in[BboxesIdx];
 
   if(!boxes.isempty()) {
@@ -181,6 +181,39 @@ std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int
   long long int imageSizeArray[] = { resizedImage.dims(1), resizedImage.dims(0) };
   af::array sizeArray = af::array(2, imageSizeArray);
   return { resizedImage, sizeArray, inputs[ImageIdIdx], inputs[OriginalSizeIdx], boxes, inputs[ClassesIdx] };
+}
+
+TransformAllFunction Normalize(std::vector<float> meanVector, std::vector<float> stdVector) {
+  const af::array mean(1, 1, 3, 1, meanVector.data());
+  const af::array std(1, 1, 3, 1, stdVector.data());
+  return [mean, std](const std::vector<af::array>& in) {
+    // Normalize Boxes
+    auto boxes = in[BboxesIdx];
+
+    if(!boxes.isempty()) {
+      auto image = in[ImageIdx];
+      auto w = float(image.dims(0));
+      auto h = float(image.dims(1));
+
+      boxes = xyxy_to_cxcywh(boxes);
+      const std::vector<float> ratioVector = { w, h, w, h };
+      af::array ratioArray = af::array(4, ratioVector.data());
+      boxes = af::batchFunc(boxes, ratioArray, af::operator/);
+    }
+    // Normalize Image
+    af::array image = in[ImageIdx].as(f32) / 255.f;
+    image = af::batchFunc(image, mean, af::operator-);
+    image = af::batchFunc(image, std, af::operator/);
+    std::vector<af::array> outputs = {
+      image, 
+      in[TargetSizeIdx], 
+      in[ImageIdIdx], 
+      in[OriginalSizeIdx], 
+      boxes, 
+      in[ClassesIdx] 
+    };
+    return outputs;
+  }; // 
 }
 
 

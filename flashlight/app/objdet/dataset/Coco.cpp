@@ -92,7 +92,6 @@ struct CocoDataSample {
 
 CocoDataset::CocoDataset(
     const std::string& list_file,
-    std::vector<ImageTransform>& transformfns,
     int world_rank,
     int world_size,
     int batch_size,
@@ -136,7 +135,7 @@ CocoDataset::CocoDataset(
   assert(data.size() > 0);
 
   // Now define how to load the data from CocoDataSampoles in arrayfire
-  auto base = std::make_shared<LoaderDataset<CocoDataSample>>(data,
+  std::shared_ptr<Dataset> ds = std::make_shared<LoaderDataset<CocoDataSample>>(data,
     [](const CocoDataSample& sample) {
       af::array image = loadJpeg(sample.filepath);
 
@@ -161,52 +160,42 @@ CocoDataset::CocoDataset(
       return std::vector<af::array>{ image, targetSize, imageId, targetSize, bboxes, classes };
   });
 
-  std::shared_ptr<Dataset> transformed = base;
 
-  int maxSize = 1333;
+  const int maxSize = 1333;
   if (val) {
-    transformed = std::make_shared<TransformAllDataset>(
-         transformed, randomResize({800}, maxSize));
-   } else {
+    ds = std::make_shared<TransformAllDataset>(ds, randomResize({800}, maxSize));
+  } else {
+    std::vector<int> scales = {480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
+    TransformAllFunction trainTransform = compose({
+        randomHorizontalFlip(0.5),
+        randomSelect({
+            randomResize(scales, maxSize),
+            compose({
+                randomResize({400, 500, 600}, -1),
+                randomSizeCrop(384, 600),
+                randomResize(scales, 1333)
+                })
+            })
+        });
 
-     std::vector<int> scales = {480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
-     TransformAllFunction trainTransform = compose({
-       randomHorizontalFlip(0.5),
-       randomSelect({
-         randomResize(scales, maxSize),
-         compose({
-            randomResize({400, 500, 600}, -1),
-            randomSizeCrop(384, 600),
-            randomResize(scales, 1333)
-          })
-       })
-     });
+    ds = std::make_shared<TransformAllDataset>(ds, trainTransform);
+  }
 
-      transformed = std::make_shared<TransformAllDataset>(
-           transformed, trainTransform);
-   }
+  ds = std::make_shared<TransformAllDataset>(ds, Normalize());
 
-  transformed = std::make_shared<TransformAllDataset>(
-      transformed, Normalize);
-
-  transformed = std::make_shared<TransformDataset>(
-      transformed, transformfns);
-
-  auto next = transformed;
   // Skip shuffling if doing eval.
   if (!val) {
-    shuffled_ = std::make_shared<ShuffleDataset>(next);
-    next = shuffled_;
+    shuffled_ = std::make_shared<ShuffleDataset>(ds);
+    ds = shuffled_;
   }
   auto permfn = [world_size, world_rank](int64_t idx) {
     return (idx * world_size) + world_rank;
   };
-  auto sampled = std::make_shared<ResampleDataset>(
-    next, permfn, next->size() / world_size);
 
-  auto prefetch = std::make_shared<PrefetchDataset>(sampled, num_threads, prefetch_size);
+  ds = std::make_shared<ResampleDataset>(ds, permfn, ds->size() / world_size);
+  ds = std::make_shared<PrefetchDataset>(ds, num_threads, prefetch_size);
   batched_ = std::make_shared<BatchTransformDataset<CocoData>>(
-      prefetch, batch_size, BatchDatasetPolicy::SKIP_LAST, cocoBatchFunc);
+      ds, batch_size, BatchDatasetPolicy::SKIP_LAST, cocoBatchFunc);
 }
 
 void CocoDataset::resample() {

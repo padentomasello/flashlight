@@ -24,11 +24,10 @@ public:
   using LossDict = std::unordered_map<std::string, Variable>;
 
   SetCriterion(
-      const int num_classes,
+      const int numClasses,
       const HungarianMatcher& matcher,
-      std::unordered_map<std::string, float> weight_dict,
-      const float eos_coef,
-      LossDict losses);
+      std::unordered_map<std::string, float> weightDict,
+      const float eosCoef);
 
   std::vector<af::array> match(
       const Variable& predBoxes,
@@ -79,11 +78,10 @@ private:
   std::pair<af::array, af::array> getTgtPermutationIdx(
       const std::vector<std::pair<af::array, af::array>>& indices);
 
-  const int num_classes_;
+  const int numClasses_;
   const HungarianMatcher matcher_;
-  const std::unordered_map<std::string, float> weight_dict_;
-  const float eos_coef_;
-  LossDict losses_;
+  const std::unordered_map<std::string, float> weightDict_;
+  const float eosCoef_;
 
 };
 

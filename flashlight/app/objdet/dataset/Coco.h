@@ -28,7 +28,6 @@ public:
 
   CocoDataset(
       const std::string& list_file,
-      std::vector<ext::image::ImageTransform>& transformfns,
       int world_rank,
       int world_size,
       int batch_size,

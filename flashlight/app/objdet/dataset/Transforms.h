@@ -27,9 +27,14 @@ std::vector<af::array> crop(
 
 std::vector<af::array> hflip(const std::vector<af::array>& in);
 
-std::vector<af::array> Normalize(const std::vector<af::array>& in);
+std::vector<af::array> normalize(const std::vector<af::array>& in);
 
 std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int maxsize);
+
+TransformAllFunction Normalize(
+    std::vector<float> meanVector = {0.485, 0.456, 0.406}, 
+    std::vector<float> stdVector= {0.229, 0.224, 0.225}
+);
 
 TransformAllFunction randomSelect(std::vector<TransformAllFunction> fns);
 

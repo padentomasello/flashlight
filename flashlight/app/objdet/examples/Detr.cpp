@@ -28,6 +28,10 @@
 #include "flashlight/lib/common/String.h"
 #include "flashlight/lib/common/String.h"
 
+using namespace fl;
+using namespace fl::ext::image;
+using namespace fl::app::objdet;
+
 using fl::ext::Serializer;
 using fl::ext::getRunFile;
 using fl::ext::serializeGflags;
@@ -35,12 +39,10 @@ using fl::lib::fileExists;
 using fl::lib::format;
 using fl::lib::getCurrentDate;
 
-
 #define FL_LOG_MASTER(lvl) LOG_IF(lvl, (fl::getWorldRank() == 0))
 
-
 DEFINE_string(data_dir, "/private/home/padentomasello/data/coco_new/", "Directory of imagenet data");
-DEFINE_double(lr, 0.0001f, "Learning rate");
+DEFINE_double(train_lr, 0.0001f, "Learning rate");
 DEFINE_double(momentum, 0.9f, "Momentum");
 DEFINE_uint64(metric_iters, 5, "Print metric every");
 
@@ -75,6 +77,7 @@ DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$L
 DEFINE_int64(eval_break, -1, "Break eval after this many iters");
 DEFINE_bool(eval_only, false, "Weather to just run eval");
 
+// Utility function that overrides flags file with command line arguments
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
   gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -85,19 +88,72 @@ void parseCmdLineFlagsWrapper(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 }
 
-using namespace fl;
-using namespace fl::ext::image;
-using namespace fl::app::objdet;
+void evalLoop(
+    std::shared_ptr<Detr> model,
+    std::shared_ptr<CocoDataset> dataset) {
+  model->eval();
+  int idx = 0;
+  std::stringstream mkdir_command;
+  mkdir_command << "mkdir -p " << FLAGS_eval_dir << fl::getWorldRank();
+  system(mkdir_command.str().c_str());
+  for(auto& sample : *dataset) {
+    std::vector<Variable> input =  { 
+      fl::Variable(sample.images, false),  
+      fl::Variable(sample.masks, false) 
+    };
+    auto output = model->forward(input);
+    std::stringstream ss;
+    ss << FLAGS_eval_dir << fl::getWorldRank() << "/detection" << idx << ".array";
+    auto outputFile = ss.str();
+    int lastLayerIdx = output[0].dims(3) - 1;
+    auto scores = output[0].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
+    auto bboxes = output[1].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
+    af::saveArray("imageSizes", sample.originalImageSizes, outputFile.c_str(), false);
+    af::saveArray("imageIds", sample.imageIds, outputFile.c_str(), true);
+    af::saveArray("scores", scores, outputFile.c_str(), true);
+    af::saveArray("bboxes", bboxes, outputFile.c_str(), true);
+    idx++;
+  }
+  if(FLAGS_enable_distributed) {
+    barrier();
+  }
+  if(fl::getWorldRank() == 0) {
+    std::stringstream ss;
+    ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
+      << FLAGS_set_env << " "
+      << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
+      << FLAGS_eval_script << " --dir "
+      << FLAGS_eval_dir;
+    int numAttempts = 10;
+    for(int i = 0; i < numAttempts; i++) {
+      int rv = system(ss.str().c_str());
+      if (rv == 0) {
+        break;
+      }
+      std::cout << "Eval failed, retrying in 5 seconds" << std::endl;
+      sleep(5);
+    }
+  }
+  if(FLAGS_enable_distributed) {
+    barrier();
+  }
+  std::stringstream ss2;
+  ss2 << "rm -rf " << FLAGS_eval_dir << fl::getWorldRank() <<"/detection*";
+  std::cout << "Removing tmp eval files Command: " << ss2.str() << std::endl;
+  system(ss2.str().c_str());
+  model->train();
+};
 
 int main(int argc, char** argv) {
 
-  //gflags::ParseCommandLineFlags(&argc, &argv, false);
+  ///////////////////////////
+  // Setup train / continue modes
+  ///////////////////////////
   int runIdx = 1; // current #runs in this path
   std::string runPath; // current experiment path
   std::string reloadPath; // path to model to reload
   std::string runStatus = argv[1];
   int64_t startEpoch = 0;
-  int64_t startUpdate = 0;
   std::string exec(argv[0]);
   std::vector<std::string> argvs;
   for (int i = 0; i < argc; i++) {
@@ -111,10 +167,10 @@ int main(int argc, char** argv) {
   if (argc <= 1) {
     LOG(FATAL) << gflags::ProgramUsage();
   }
-  if (runStatus == "train") {
+  if (runStatus == kTrainMode) {
     parseCmdLineFlagsWrapper(argc, argv);
     runPath = FLAGS_rundir;
-  } else if (runStatus == "continue") {
+  } else if (runStatus == kContinueMode) {
     runPath = argv[2];
     while (fileExists(getRunFile("model_last.bin", runIdx, runPath))) {
       ++runIdx;
@@ -138,12 +194,6 @@ int main(int argc, char** argv) {
     } else {
       startEpoch = std::stoi(epoch->second);
     }
-    auto nbupdates = cfg.find(kUpdates);
-    if (nbupdates == cfg.end()) {
-      LOG(WARNING) << "Did not find #updates to start from, starting from 0.";
-    } else {
-      startUpdate = std::stoi(nbupdates->second);
-    }
   } else {
     LOG(FATAL) << gflags::ProgramUsage();
   }
@@ -151,21 +201,6 @@ int main(int argc, char** argv) {
   if (runPath.empty()) {
     LOG(FATAL) << "'runpath' specified by --rundir, --runname cannot be empty";
   }
-
-  /////////////////////////
-  // Setup distributed training
-  ////////////////////////
-  if (FLAGS_enable_distributed) {
-    fl::ext::initDistributed(
-        FLAGS_world_rank,
-        FLAGS_world_size,
-        8,
-        FLAGS_rndv_filepath);
-  }
-
-  const int worldRank = fl::getWorldRank();
-  const int worldSize = fl::getWorldSize();
-
   const std::string cmdLine= fl::lib::join(" ", argvs);
   std::unordered_map<std::string, std::string> config = {
       {kProgramName, exec},
@@ -178,41 +213,16 @@ int main(int argc, char** argv) {
       {kRunIdx, std::to_string(runIdx)},
       {kRunPath, runPath}};
 
-  auto reducer = std::make_shared<fl::CoalescingReducer>(
-      1.0,
-      true,
-      true);
 
-  /////////////////////////
-  // Setup distributed training
-  ////////////////////////
 
-  //////////////////////////
-  //  Create datasets
-  /////////////////////////
-  const std::vector<float> mean = {0.485, 0.456, 0.406};
-  const std::vector<float> std = {0.229, 0.224, 0.225};
-  //std::vector<ImageTransform> train_transforms = {
-      //// randomly resize shortest side of image between 256 to 480 for scale 
-      //// invariance
-      ////randomResizeTransform(256, 480),
-      ////randomCropTransform(224, 224), normalizeImage(mean, std),
-      //// Randomly flip image with probability of 0.5
-      ////horizontalFlipTransform(0.5)
-  //};
-  std::vector<ImageTransform> val_transforms = {
-      // Resize shortest side to 256, then take a center crop
-      //resizeTransform(256),
-      //centerCropTransform(224),
-      normalizeImage(mean, std)
-  };
-
+  ////////////////////////////
+  // Create models 
+  ////////////////////////////
   const int32_t modelDim = 256;
   const int32_t numHeads = 8;
   const int32_t numEncoderLayers = 6;
   const int32_t numDecoderLayers = 6;
   const int32_t mlpDim = 2048;
-  // TODO check this is correct
   const int32_t hiddenDim = modelDim;
   const int32_t numClasses = 91;
   const int32_t numQueries = 100;
@@ -241,56 +251,36 @@ int main(int argc, char** argv) {
       numQueries,
       auxLoss);
 
-  auto* curMemMgr =
-          fl::MemoryManagerInstaller::currentlyInstalledMemoryManager();
-      if (curMemMgr) {
-        curMemMgr->printInfo("Memory Manager Stats", 0 /* device id */);
-      }
-
   // Trained
   // untrained but initializaed
   if (!FLAGS_pytorch_init.empty()) {
     std::cout << "Loading from pytorch intiialization path" << FLAGS_pytorch_init << std::endl;
-  //std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch";
+    //std::string modelPath = "/checkpoint/padentomasello/models/detr/from_pytorch";
     //std::string modelPath = "/checkpoint/padentomasello/models/detr/pytorch_initializaition";
     fl::load(FLAGS_pytorch_init, detr);
   }
-
   detr->train();
 
-  //fl::distributeModuleGrads(backbone, reducer);
-
-  auto saveOutput = [](
-      af::array imageSizes,
-      af::array imageIds,
-      af::array boxes,
-      af::array scores,
-      std::string outputFile) {
-      af::saveArray("imageSizes", imageSizes, outputFile.c_str(), false);
-      af::saveArray("imageIds", imageIds, outputFile.c_str(), true);
-      af::saveArray("scores", scores, outputFile.c_str(), true);
-      af::saveArray("bboxes", boxes, outputFile.c_str(), true);
-  };
-
+  /////////////////////////
+  // Build criterion 
+  /////////////////////////
   const float setCostClass = 1.f;
   const float setCostBBox = 5.f;
   const float setCostGiou = 2.f;
   const float bboxLossCoef = 5.f;
   const float giouLossCoef = 2.f;
 
-
   auto matcher = HungarianMatcher(
       setCostClass,
       setCostBBox,
       setCostGiou
       );
-  SetCriterion::LossDict losses;
 
 
-  std::unordered_map<std::string, float> lossWeightsBase = 
-        { { "loss_ce" , 1.f} ,
-        { "loss_giou", giouLossCoef },
-        { "loss_bbox", bboxLossCoef }
+  const std::unordered_map<std::string, float> lossWeightsBase = 
+        { { "lossCe" , 1.f} ,
+        { "lossGiou", giouLossCoef },
+        { "lossBbox", bboxLossCoef }
   };
 
   std::unordered_map<std::string, float> lossWeights;
@@ -300,85 +290,63 @@ int main(int argc, char** argv) {
       lossWeights[key] = l.second;
     }
   }
-  auto criterion = SetCriterion(
-      numClasses,
-      matcher,
-      lossWeights,
-      0.1,
-      losses);
+  auto criterion = SetCriterion(numClasses, matcher, lossWeights, 0.1);
+  auto weightDict = criterion.getWeightDict();
 
-  auto eval_loop = [saveOutput](
-      std::shared_ptr<Module> backbone,
-      std::shared_ptr<Detr> model,
-      std::shared_ptr<CocoDataset> dataset) {
-    model->eval();
-    int idx = 0;
-    std::stringstream mkdir_command;
-    mkdir_command << "mkdir -p " << FLAGS_eval_dir << fl::getWorldRank();
-    system(mkdir_command.str().c_str());
-    for(auto& sample : *dataset) {
-      std::vector<Variable> input =  { 
-        fl::Variable(sample.images, false),  
-        fl::Variable(sample.masks, false) 
-      };
-      //auto features = backbone->forward(images)[0];
-      //auto features = input;
-      auto output = model->forward(input);
-      std::stringstream ss;
-      ss << FLAGS_eval_dir << fl::getWorldRank() << "/detection" << idx << ".array";
-      auto output_array = ss.str();
-      int lastLayerIdx = output[0].dims(3) - 1;
-      auto output_first_last = output[0].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
-      auto output_second_last = output[1].array()(af::span, af::span, af::span, af::seq(lastLayerIdx, lastLayerIdx));
-      //saveOutput(sample.imageSizes, sample.imageIds, output[1].array(), output[0].array(), ss.str());
-      saveOutput(sample.originalImageSizes, sample.imageIds, output_second_last, output_first_last, ss.str());
-      idx++;
-      if(FLAGS_eval_break > 0 && idx == FLAGS_eval_break) {
-        break;
-      }
-    }
-    if(FLAGS_enable_distributed) {
-      barrier();
-    }
-    if(fl::getWorldRank() == 0) {
-      std::stringstream ss;
-      ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-        << FLAGS_set_env << " "
-        << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
-        << FLAGS_eval_script << " --dir "
-        << FLAGS_eval_dir;
-      int numAttempts = 10;
-      for(int i = 0; i < numAttempts; i++) {
-        int rv = system(ss.str().c_str());
-        if (rv == 0) {
-          break;
-        }
-        std::cout << "Eval failed, retrying in 5 seconds" << std::endl;
-        sleep(5);
-      }
-    }
-    if(FLAGS_enable_distributed) {
-      barrier();
-    }
-    //system(ss.str().c_str());
-    std::stringstream ss2;
-    ss2 << "rm -rf " << FLAGS_eval_dir << fl::getWorldRank() <<"/detection*";
-    std::cout << "Commond: " << ss2.str() << std::endl;
-    system(ss2.str().c_str());
-    model->train();
+  ////////////////////
+  // Optimizers 
+  ////////////////////
+  const float beta1 = 0.9;
+  const float beta2 = 0.999;
+  const float epsilon = 1e-8;
+  auto opt = std::make_shared<AdamOptimizer>(
+      detr->paramsWithoutBackbone(), FLAGS_train_lr, beta1, beta2, epsilon, FLAGS_wd);
+  auto opt2 = std::make_shared<AdamOptimizer>(
+      detr->backboneParams(), FLAGS_train_lr * 0.1, beta1, beta2, epsilon, FLAGS_wd);
+  auto lrScheduler = [&opt, &opt2](int epoch) {
+    // Adjust learning rate every 30 epoch after 30
+    const float newLr = FLAGS_train_lr * pow(0.1, epoch / 100);
+    LOG(INFO) << "Setting learning rate to: " << newLr;
+    opt->setLr(newLr);
+    opt2->setLr(newLr * 0.1);
   };
 
-  //const int64_t batch_size_per_gpu = FLAGS_batch_size / FLAGS_world_size;
+  /////////////////////////
+  // Setup distributed training
+  ////////////////////////
+  std::shared_ptr<fl::Reducer> reducer = nullptr;
+  if (FLAGS_enable_distributed) {
+    fl::ext::initDistributed(
+        FLAGS_world_rank,
+        FLAGS_world_size,
+        8,
+        FLAGS_rndv_filepath);
+
+    reducer = std::make_shared<fl::CoalescingReducer>(
+        1.0,
+        true,
+        true);
+    // synchronize parameters of the model so that the parameters in each process
+    // is the same
+    fl::allReduceParameters(detr);
+    //fl::allReduceParameters(backbone);
+
+    // Add a hook to synchronize gradients of model parameters as they are
+    // computed
+    fl::distributeModuleGrads(detr, reducer);
+  }
+  const int worldRank = fl::getWorldRank();
+  const int worldSize = fl::getWorldSize();
+
+  /////////////////////////
+  // Create Datasets
+  /////////////////////////
   const int64_t batch_size_per_gpu = FLAGS_batch_size;
   const int64_t prefetch_threads = 10;
   const int64_t prefetch_size = FLAGS_batch_size;
   std::string coco_dir = FLAGS_data_dir;
-  //std::string coco_list = "/private/home/padentomasello/data/coco-mini/train.lst";
-  //auto coco = cv::dataset::coco(coco_list, val_transforms, FLAGS_batch_size);
-
   auto train_ds = std::make_shared<CocoDataset>(
       coco_dir + "train.lst",
-      val_transforms,
       worldRank,
       worldSize,
       batch_size_per_gpu,
@@ -387,31 +355,15 @@ int main(int argc, char** argv) {
 
   auto val_ds = std::make_shared<CocoDataset>(
       coco_dir + "val.lst",
-      val_transforms,
       worldRank,
       worldSize,
       batch_size_per_gpu,
       prefetch_threads,
       batch_size_per_gpu,
       true);
-  //SGDOptimizer opt(detr.params(), FLAGS_lr, FLAGS_momentum, FLAGS_wd);
-  //
 
-  const float beta1 = 0.9;
-  const float beta2 = 0.999;
-  const float epsilon = 1e-8;
-  auto opt = std::make_shared<AdamOptimizer>(
-      detr->paramsWithoutBackbone(), FLAGS_lr, beta1, beta2, epsilon, FLAGS_wd);
-  auto opt2 = std::make_shared<AdamOptimizer>(
-      detr->backboneParams(), FLAGS_lr * 0.1, beta1, beta2, epsilon, FLAGS_wd);
-  auto lrScheduler = [&opt, &opt2](int epoch) {
-    // Adjust learning rate every 30 epoch after 30
-    const float newLr = FLAGS_lr * pow(0.1, epoch / 100);
-    LOG(INFO) << "Setting learning rate to: " << newLr;
-    opt->setLr(newLr);
-    opt2->setLr(newLr * 0.1);
-  };
 
+  // Override any initialization if continuing
   if (runStatus == "continue") {
     std::unordered_map<std::string, std::string> cfg; // unused
     std::string version;
@@ -424,42 +376,33 @@ int main(int argc, char** argv) {
             opt2);
   }
 
-
-  auto weightDict = criterion.getWeightDict();
+  // Run eval if continueing
   if(startEpoch > 0 || FLAGS_eval_only) {
-    std::cout << "here" << std::endl;
     detr->eval();
-    eval_loop(backbone, detr, val_ds);
+    evalLoop(detr, val_ds);
     detr->train();
     if(FLAGS_eval_only) {
       return 0;
     }
   }
 
-  // synchronize parameters of tje model so that the parameters in each process
-  // is the same
-  fl::allReduceParameters(detr);
-  //fl::allReduceParameters(backbone);
-
-  // Add a hook to synchronize gradients of model parameters as they are
-  // computed
-  fl::distributeModuleGrads(detr, reducer);
+  ////////////////
+  // Training loop
+  //////////////
   for(int epoch= startEpoch; epoch < FLAGS_epochs; epoch++) {
-    lrScheduler(epoch);
-
+    int idx = 0;
     std::map<std::string, AverageValueMeter> meters;
     std::map<std::string, TimeMeter> timers;
-    int idx = 0;
+
     timers["total"].resume();
+    lrScheduler(epoch);
     train_ds->resample();
-    //while(true) {
     for(auto& sample : *train_ds) {
       std::vector<Variable> input =  { 
         fl::Variable(sample.images, false),
         fl::Variable(sample.masks, false) 
       };
       auto output = detr->forward(input);
-
 
       timers["forward"].stop();
 
@@ -481,17 +424,12 @@ int main(int argc, char** argv) {
 
       timers["criterion"].resume();
 
-      // TODO test
-      //std::vector<Variable> outputSecond = { output[1], output[1] };
-      //std::vector<Variable> outputFirst = { output[0], output[0] };
-      //output[0] = concatenate(outputFirst, 3);
-      //output[1] = concatenate(outputSecond, 4);
-
       auto loss = criterion.forward(
           output[1],
           output[0],
           targetBoxes,
           targetClasses);
+
       auto accumLoss = fl::Variable(af::constant(0, 1), true);
       for(auto losses : loss) {
         fl::Variable scaled_loss = weightDict[losses.first] * losses.second;
@@ -561,9 +499,7 @@ int main(int argc, char** argv) {
       Serializer::save(filename, "0.1", config, detr, opt, opt2);
     }
     if(epoch % FLAGS_eval_iters == 0) {
-      eval_loop(backbone, detr, val_ds);
-      //eval_loop(detr, val_ds);
-      //saveModel(e);
+      evalLoop(detr, val_ds);
     }
   }
 }

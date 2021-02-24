@@ -246,16 +246,15 @@ Variable weightedCategoricalCrossEntropy(
 }
 
 SetCriterion::SetCriterion(
-    const int num_classes,
+    const int numClasses,
     const HungarianMatcher& matcher,
-    const std::unordered_map<std::string, float> weight_dict,
-    const float eos_coef,
-    LossDict losses) :
-  num_classes_(num_classes),
+    const std::unordered_map<std::string, float> weightDict,
+    const float eosCoef) :
+  numClasses_(numClasses),
   matcher_(matcher),
-  weight_dict_(weight_dict),
-  eos_coef_(eos_coef),
-  losses_(losses) { };
+  weightDict_(weightDict),
+  eosCoef_(eosCoef)
+   { };
 
 SetCriterion::LossDict SetCriterion::forward(
     const Variable& predBoxesAux,
@@ -276,17 +275,12 @@ SetCriterion::LossDict SetCriterion::forward(
           [](int curr, const Variable& label) { return curr + label.dims(1);  }
       );
 
-      af::array numBoxesArray = af::constant(numBoxes, { 1 }, af::dtype::s32);
+      af::array numBoxesArray = af::constant(numBoxes, 1, af::dtype::s32);
       if (isDistributedInit()) {
         allReduce(numBoxesArray);
       }
       numBoxes = numBoxesArray.scalar<int>();
       numBoxes = std::max(numBoxes / fl::getWorldSize() , 1);
-
-
-      // TODO clamp number of boxes based on world size
-      // https://github.com/fairinternal/detection-transformer/blob/master/models/detr.py#L168
-
 
       auto labelLoss = lossLabels(predBoxes, predLogits, targetBoxes, targetClasses, indices, numBoxes);
       auto bboxLoss = lossBoxes(predBoxes, predLogits, targetBoxes, targetClasses, indices, numBoxes);
@@ -310,8 +304,8 @@ SetCriterion::LossDict SetCriterion::lossBoxes(
 
   auto srcIdx = this->getSrcPermutationIdx(indices);
   if (srcIdx.first.isempty()) {
-    return { { "loss_giou", fl::Variable(af::constant(0, {1}), false) } , 
-              {"loss_bbox", fl::Variable(af::constant(0, {1}), false) }};
+    return { { "lossGiou", fl::Variable(af::constant(0, {1}), false) } , 
+              {"lossBbox", fl::Variable(af::constant(0, {1}), false) }};
   }
   auto colIdxs = af::moddims(srcIdx.second, { 1, srcIdx.second.dims(0) });
   auto batchIdxs = af::moddims(srcIdx.first, {1, srcIdx.first.dims(0) });
@@ -330,22 +324,21 @@ SetCriterion::LossDict SetCriterion::lossBoxes(
   }
   auto tgtBoxes = fl::concatenate(permuted, 1);
 
-
-  auto cost_giou =  generalized_box_iou(
+  auto costGiou =  generalized_box_iou(
       cxcywh_to_xyxy(srcBoxes), 
       cxcywh_to_xyxy(tgtBoxes)
   );
 
   // Extract diagnal
-  auto dims = cost_giou.dims();
+  auto dims = costGiou.dims();
   auto rng = af::range(dims[0]);
-  cost_giou = 1 - index(cost_giou, { rng, rng, af::array(), af::array() });
-  cost_giou = sum(cost_giou, { 0 } ) / numBoxes;
+  costGiou = 1 - index(costGiou, { rng, rng, af::array(), af::array() });
+  costGiou = sum(costGiou, { 0 } ) / numBoxes;
 
-  auto loss_bbox = l1_loss(srcBoxes, tgtBoxes);
-  loss_bbox = sum(loss_bbox, { 0 } ) / numBoxes;
+  auto lossBbox = l1_loss(srcBoxes, tgtBoxes);
+  lossBbox = sum(lossBbox, { 0 } ) / numBoxes;
 
-  return { {"loss_giou", cost_giou}, {"loss_bbox", loss_bbox }};
+  return { {"lossGiou", costGiou}, {"lossBbox", lossBbox }};
 }
 
 SetCriterion::LossDict SetCriterion::lossLabels(
@@ -356,9 +349,9 @@ SetCriterion::LossDict SetCriterion::lossLabels(
     const std::vector<std::pair<af::array, af::array>>& indices,
     const int numBoxes) {
 
-  assert(predLogits.dims(0) == num_classes_ + 1);
+  assert(predLogits.dims(0) == numClasses_ + 1);
 
-  auto target_classes_full = af::constant(num_classes_, 
+  auto target_classes_full = af::constant(numClasses_, 
       { predLogits.dims(1), predLogits.dims(2), predLogits.dims(3) } , f32);
 
   int i = 0;
@@ -371,20 +364,18 @@ SetCriterion::LossDict SetCriterion::lossLabels(
   }
 
   auto softmaxed = logSoftmax(predLogits, 0);
-  //int num_classes = softmaxed.dims(0);
-  auto weight = af::constant(1.0f, num_classes_ + 1);
-  weight(num_classes_) = eos_coef_;
+  auto weight = af::constant(1.0f, numClasses_ + 1);
+  weight(numClasses_) = eosCoef_;
   auto weightVar = Variable(weight, false);
-  auto loss_ce = weightedCategoricalCrossEntropy(
+  auto lossCe = weightedCategoricalCrossEntropy(
       softmaxed, fl::Variable(target_classes_full, false), weightVar, ReduceMode::MEAN, -1);
-  return { {"loss_ce", loss_ce} };
+  return { {"lossCe", lossCe} };
 }
 
 std::unordered_map<std::string, float> SetCriterion::getWeightDict() {
-  return weight_dict_;
+  return weightDict_;
 }
 
-// TODO we can push all of this into HungarianMatcher. Do after testing.
 std::pair<af::array, af::array> SetCriterion::getTgtPermutationIdx(
     const std::vector<std::pair<af::array, af::array>>& indices) {
   long batchSize = static_cast<long>(indices.size());
@@ -394,7 +385,7 @@ std::pair<af::array, af::array> SetCriterion::getTgtPermutationIdx(
   auto tgtIdxs = af::constant(-1, {1, dims[0], batchSize});
   int idx = 0;
   for(auto pair : indices) {
-    batchIdxs(0, 0, 0, idx) = af::constant(idx, { 1 });
+    batchIdxs(0, 0, 0, idx) = af::constant(idx, { 1, 1, 1, 1 });
     tgtIdxs(af::span, af::span, idx) = pair.first;
     idx++;
   }
@@ -405,12 +396,8 @@ std::pair<af::array, af::array> SetCriterion::getTgtPermutationIdx(
 std::pair<af::array, af::array> SetCriterion::getSrcPermutationIdx(
     const std::vector<std::pair<af::array, af::array>>& indices) {
 
-  //std::vector<fl::Variable> srcIdxs(indices.size());
   std::vector<fl::Variable> srcIdxs;
   std::vector<fl::Variable> batchIdxs;
-  //std::transform(indices.begin(), indices.end(), srcIdxs.begin(),
-      //[](std::pair<af::array, af::array> idxs) { return Variable(idxs.second, false); } 
-  //);
   for(int i = 0; i < indices.size(); i++) {
     auto index = indices[i].second;
     if(!index.isempty()) {
@@ -425,18 +412,6 @@ std::pair<af::array, af::array> SetCriterion::getSrcPermutationIdx(
     batchIdx = concatenate(batchIdxs, 0);
   }
   return { batchIdx.array(), srcIdx.array() };
-  //long batchSize = static_cast<long>(indices.size());
-  //auto batchIdxs = af::constant(-1, {1, 1, batchSize});
-  //auto first = indices[0].first;
-  //auto dims = first.dims();
-  //auto srcIdxs = af::constant(-1, {1, dims[0], batchSize});
-  //int idx = 0;
-  //for(auto pair : indices) {
-    //batchIdxs(0, 0, idx) = af::constant(idx, { 1 });
-    //srcIdxs(af::span, af::span, idx) = pair.second;
-    //idx++;
-  //}
-  //return std::make_pair(batchIdxs, srcIdxs);
 }
 
 } // namespace objdet
