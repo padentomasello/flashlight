@@ -1,22 +1,24 @@
-#include <limits>
 #include <assert.h>
+#include <limits>
 #include <vector>
 
 namespace {
 
-enum Mark: int {
-  None = 0,
-  Star = 1,
-  Prime = 2
-};
+enum Mark : int { None = 0, Star = 1, Prime = 2 };
 
-void findUncoveredZero(float* costs, int* colCover, int* rowCover, int nrows, int ncols, 
-    int* row, int* col) {
+void findUncoveredZero(
+    float* costs,
+    int* colCover,
+    int* rowCover,
+    int nrows,
+    int ncols,
+    int* row,
+    int* col) {
   bool done = false;
   *row = -1;
   *col = -1;
-  for(int c = 0; c < ncols && !done; c++) {
-    for(int r = 0; r < nrows && !done; r++) {
+  for (int c = 0; c < ncols && !done; c++) {
+    for (int r = 0; r < nrows && !done; r++) {
       const float cost = costs[c * nrows + r];
       if (cost == 0 && colCover[c] == 0 && rowCover[r] == 0) {
         *row = r;
@@ -28,8 +30,8 @@ void findUncoveredZero(float* costs, int* colCover, int* rowCover, int nrows, in
 }
 
 bool isStarInRow(int* marks, int row, int nrows, int ncols) {
-  for(int c = 0; c < ncols; c++) {
-    if(marks[c * nrows + row] == Mark::Star) {
+  for (int c = 0; c < ncols; c++) {
+    if (marks[c * nrows + row] == Mark::Star) {
       return true;
     };
   }
@@ -37,8 +39,8 @@ bool isStarInRow(int* marks, int row, int nrows, int ncols) {
 }
 
 int findStarInRow(int* marks, int row, int nrows, int ncols) {
-  for(int c = 0; c < ncols; c++) {
-    if(marks[c * nrows + row] == Mark::Star) {
+  for (int c = 0; c < ncols; c++) {
+    if (marks[c * nrows + row] == Mark::Star) {
       return c;
     };
   }
@@ -63,7 +65,8 @@ int stepOne(float* costs, const int nrows, const int ncols) {
   return 2;
 }
 
-// Iterate through rows, and mark 0s with '1' (Star) if they have not already been covered by a previous marking
+// Iterate through rows, and mark 0s with '1' (Star) if they have not already
+// been covered by a previous marking
 int stepTwo(
     float* costs,
     int* marks,
@@ -71,8 +74,8 @@ int stepTwo(
     int* rowCover,
     const int nrows,
     const int ncols) {
-  for(int r = 0; r < nrows; r++) {
-    for(int c = 0; c < ncols; c++) {
+  for (int r = 0; r < nrows; r++) {
+    for (int c = 0; c < ncols; c++) {
       float cost = costs[c * nrows + r];
       if (cost == 0.0 && rowCover[r] == 0 && colCover[c] == 0) {
         marks[c * nrows + r] = Mark::Star;
@@ -81,10 +84,10 @@ int stepTwo(
       }
     }
   }
-  for(int r = 0; r < nrows; r++) {
+  for (int r = 0; r < nrows; r++) {
     rowCover[r] = 0;
   }
-  for(int c = 0; c < ncols; c++) {
+  for (int c = 0; c < ncols; c++) {
     colCover[c] = 0;
   }
   return 3;
@@ -92,8 +95,8 @@ int stepTwo(
 
 // Count the number of lines needed to cover all "Stars"
 int stepThree(int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
-  for(int r = 0; r < nrows; r++) {
-    for(int c = 0; c < ncols; c++) {
+  for (int r = 0; r < nrows; r++) {
+    for (int c = 0; c < ncols; c++) {
       const int mark = marks[c * nrows + r];
       if (mark == 1) {
         colCover[c] = 1;
@@ -101,19 +104,20 @@ int stepThree(int* marks, int* colCover, int* rowCover, int nrows, int ncols) {
     }
   }
   int coveredCols = 0;
-  for(int c = 0; c < ncols; c++) {
+  for (int c = 0; c < ncols; c++) {
     coveredCols += colCover[c];
   }
-  if(coveredCols == ncols || coveredCols >= nrows) {
+  if (coveredCols == ncols || coveredCols >= nrows) {
     return 7;
   } else {
     return 4;
   }
 }
 
-// Find a noncovered zero and "prime it". If there are no uncovered zeros in the row containing
-// this zero, go to 5. Otherwise, cover this row, and uncovered column containing starred zero.
-// Continue until there are no more uncovered zeros left. Then go to 6.
+// Find a noncovered zero and "prime it". If there are no uncovered zeros in the
+// row containing this zero, go to 5. Otherwise, cover this row, and uncovered
+// column containing starred zero. Continue until there are no more uncovered
+// zeros left. Then go to 6.
 int stepFour(
     float* costs,
     int* marks,
@@ -124,16 +128,15 @@ int stepFour(
     int* firstPathRow,
     int* firstPathCol) {
   bool done = false;
-  while(!done) {
+  while (!done) {
     int row, col;
     findUncoveredZero(costs, colCover, rowCover, nrows, ncols, &row, &col);
     if (row < 0 && col < 0) {
       return 6;
-    }
-    else {
+    } else {
       // "Prime it"
       marks[col * nrows + row] = Mark::Prime;
-      if(isStarInRow(marks, row, nrows, ncols)) {
+      if (isStarInRow(marks, row, nrows, ncols)) {
         int col = findStarInRow(marks, row, nrows, ncols);
         rowCover[row] = 1;
         colCover[col] = 0;
@@ -149,8 +152,8 @@ int stepFour(
 }
 
 int findStarInCol(int* masks, int col, int nrows, int ncols) {
-  for(int r = 0; r < nrows; r++) {
-    if(masks[col * nrows + r] == 1) {
+  for (int r = 0; r < nrows; r++) {
+    if (masks[col * nrows + r] == 1) {
       return r;
     }
   }
@@ -158,20 +161,19 @@ int findStarInCol(int* masks, int col, int nrows, int ncols) {
 }
 
 int findPrimeInRow(int* masks, int row, int nrows, int ncols) {
-  for(int c = 0; c < ncols; c++) {
-    if(masks[c * nrows + row] == 2) {
+  for (int c = 0; c < ncols; c++) {
+    if (masks[c * nrows + row] == 2) {
       return c;
     }
   }
   return -1;
-
 }
 
 void augmentPaths(int* paths, int pathCount, int* marks, int nrows, int ncols) {
-  for(int p = 0; p < pathCount; p++) {
+  for (int p = 0; p < pathCount; p++) {
     int row = paths[p * 2];
     int col = paths[p * 2 + 1];
-    if(marks[col * nrows + row] == Mark::Star) {
+    if (marks[col * nrows + row] == Mark::Star) {
       marks[col * nrows + row] = Mark::None;
     } else {
       marks[col * nrows + row] = Mark::Star;
@@ -180,15 +182,15 @@ void augmentPaths(int* paths, int pathCount, int* marks, int nrows, int ncols) {
 }
 
 void clearCover(int* cover, int n) {
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     cover[i] = 0;
   }
 }
 
 void erasePrimes(int* marks, int nrows, int ncols) {
-  for(int c = 0; c < ncols; c++) {
-    for(int r = 0; r < nrows; r++) {
-      if(marks[c * nrows + r] == Mark::Prime) {
+  for (int c = 0; c < ncols; c++) {
+    for (int r = 0; r < nrows; r++) {
+      if (marks[c * nrows + r] == Mark::Prime) {
         marks[c * nrows + r] = Mark::None;
       }
     }
@@ -211,16 +213,16 @@ int stepFive(
   path[(pathCount - 1) * 2] = firstPathRow;
   path[(pathCount - 1) * 2 + 1] = firstPathCol;
   bool done = false;
-  while(!done) {
+  while (!done) {
     r = findStarInCol(marks, path[(pathCount - 1) * 2 + 1], nrows, ncols);
-    if(r > -1) {
+    if (r > -1) {
       pathCount += 1;
       path[(pathCount - 1) * 2] = r;
       path[(pathCount - 1) * 2 + 1] = path[(pathCount - 2) * 2 + 1];
     } else {
       done = true;
     }
-    if(!done) {
+    if (!done) {
       c = findPrimeInRow(marks, path[(pathCount - 1) * 2], nrows, ncols);
       pathCount += 1;
       path[(pathCount - 1) * 2] = path[(pathCount - 2) * 2];
@@ -234,13 +236,18 @@ int stepFive(
   return 3;
 }
 
-float findSmallestNotCovered(float* costs, int* colCover, int* rowCover, int nrows, int ncols) {
+float findSmallestNotCovered(
+    float* costs,
+    int* colCover,
+    int* rowCover,
+    int nrows,
+    int ncols) {
   float minValue = std::numeric_limits<float>::max();
-  for(int c = 0; c < ncols; c++) {
-    for(int r = 0; r < nrows; r++) {
+  for (int c = 0; c < ncols; c++) {
+    for (int r = 0; r < nrows; r++) {
       if (colCover[c] == 0 && rowCover[r] == 0) {
         const float cost = costs[c * nrows + r];
-        if(cost < minValue) {
+        if (cost < minValue) {
           minValue = cost;
         }
       }
@@ -256,10 +263,11 @@ int stepSix(
     int* rowCover,
     int nrows,
     int ncols) {
-  float minVal = findSmallestNotCovered(costs, colCover, rowCover, nrows, ncols);
-  for(int c = 0; c < ncols; c++) {
-    for(int r = 0; r < nrows; r++) {
-      if(rowCover[r] == 1) {
+  float minVal =
+      findSmallestNotCovered(costs, colCover, rowCover, nrows, ncols);
+  for (int c = 0; c < ncols; c++) {
+    for (int r = 0; r < nrows; r++) {
+      if (rowCover[r] == 1) {
         costs[c * nrows + r] += minVal;
       }
       if (colCover[c] == 0) {
@@ -272,10 +280,10 @@ int stepSix(
 
 void step_seven(int* marks, int* rowIdxs, int* colIdxs, int M, int N) {
   int i = 0;
-  for(int r = 0; r < M; r++) {
-    for(int c = 0; c < N; c++) {
+  for (int r = 0; r < M; r++) {
+    for (int c = 0; c < N; c++) {
       const int mark = marks[c * M + r];
-      if(mark == Mark::Star) {
+      if (mark == Mark::Star) {
         rowIdxs[i] = r;
         colIdxs[i] = c;
         i += 1;
@@ -284,7 +292,7 @@ void step_seven(int* marks, int* rowIdxs, int* colIdxs, int M, int N) {
   }
 };
 
-} 
+} // namespace
 
 namespace fl {
 namespace cv {
@@ -298,8 +306,8 @@ void hungarian(float* costs, int* assignments, int M, int N) {
   int firstPathRow, firstPathCol;
   bool done = false;
   int step = 1;
-  while(!done) {
-    switch(step) {
+  while (!done) {
+    switch (step) {
       case 1:
         step = stepOne(costs, M, N);
         break;
@@ -350,5 +358,5 @@ void hungarian(float* costs, int* rowIdxs, int* colIdxs, int M, int N) {
   step_seven(marks.data(), rowIdxs, colIdxs, M, N);
 }
 
-}
-}
+} // namespace cv
+} // namespace fl

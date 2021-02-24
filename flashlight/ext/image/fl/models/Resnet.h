@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "flashlight/fl/nn/nn.h"
 #include "flashlight/ext/image/fl/models/FrozenBatchNorm.h"
+#include "flashlight/fl/nn/nn.h"
 
 namespace fl {
 namespace ext {

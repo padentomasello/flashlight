@@ -16,11 +16,9 @@ TEST(Tranformer, BasicAttention) {
   auto keys = af::constant(0.0, {E, B, S});
   keys(0, 0, 2) = 10000;
 
-
-  auto query = Variable(af::constant(10000, { E, B, L }), false);
+  auto query = Variable(af::constant(10000, {E, B, L}), false);
   auto key = Variable(keys, false);
-  auto value = Variable(af::iota({ E, B, S }), false);
-
+  auto value = Variable(af::iota({E, B, S}), false);
 
   auto result = transformerMultiheadAttention(
       query,
@@ -45,11 +43,9 @@ TEST(Tranformer, BasicAttentionNonMasked) {
   keys(0, 0, 2) = 10000;
   keys(0, 0, 4) = 10000;
 
-
-  auto query = Variable(af::constant(10000, { E, B, L }), false);
+  auto query = Variable(af::constant(10000, {E, B, L}), false);
   auto key = Variable(keys, false);
-  auto value = Variable(af::iota({ E, B, S }), false);
-
+  auto value = Variable(af::iota({E, B, S}), false);
 
   auto result = transformerMultiheadAttention(
       query,
@@ -74,15 +70,14 @@ TEST(Tranformer, BasicAttentionMasked) {
   keys(0, 0, 2) = 10000;
   keys(0, 0, 4) = 10000;
 
-
-  auto query = Variable(af::constant(10000, { E, B, L }), false);
+  auto query = Variable(af::constant(10000, {E, B, L}), false);
   auto key = Variable(keys, false);
-  auto value = Variable(af::iota({ E, B, S }), false);
+  auto value = Variable(af::iota({E, B, S}), false);
   int maskLength = 3;
-  auto maskArray = af::constant(0, { S, B });
-  maskArray(af::seq(0, maskLength - 1), af::span) = af::constant(1, { maskLength, B });
+  auto maskArray = af::constant(0, {S, B});
+  maskArray(af::seq(0, maskLength - 1), af::span) =
+      af::constant(1, {maskLength, B});
   auto mask = Variable(maskArray, false);
-
 
   auto result = transformerMultiheadAttention(
       query,
@@ -105,14 +100,12 @@ TEST(Tranformer, MultiHeadedAttention) {
 
   auto keys = af::constant(0.0, {E, B, S});
   keys(0, 0, 2) = 10000; // First head --> 2
-  keys(1, 0, 3) = 10000;// Second head attend to 3
+  keys(1, 0, 3) = 10000; // Second head attend to 3
 
-
-  auto query = Variable(af::constant(10000, { E, B, L }), false);
+  auto query = Variable(af::constant(10000, {E, B, L}), false);
   auto key = Variable(keys, false);
-  //auto value = Variable(af::iota({ E, B, S }), false);
-  auto value = Variable(af::iota({ 1, 1, S }, {E, B, 1}), false);
-
+  // auto value = Variable(af::iota({ E, B, S }), false);
+  auto value = Variable(af::iota({1, 1, S}, {E, B, 1}), false);
 
   auto result = transformerMultiheadAttention(
       query,
@@ -136,15 +129,13 @@ TEST(Tranformer, MultiHeadedAttentionBatch) {
 
   auto keys = af::constant(0.0, {E, B, S});
   keys(0, 0, 2) = 10000; // First head --> 2
-  keys(1, 0, 3) = 10000;// Second head attend to 3
+  keys(1, 0, 3) = 10000; // Second head attend to 3
   keys(0, 1, 1) = 10000; // First head --> 2
-  keys(1, 1, 3) = 10000;// Second head attend to 3
+  keys(1, 1, 3) = 10000; // Second head attend to 3
 
-
-  auto query = Variable(af::constant(10000, { E, B, L }), false);
+  auto query = Variable(af::constant(10000, {E, B, L}), false);
   auto key = Variable(keys, false);
-  auto value = Variable(af::iota({ 1, 1, S }, {E, B, 1}), false);
-
+  auto value = Variable(af::iota({1, 1, S}, {E, B, 1}), false);
 
   auto result = transformerMultiheadAttention(
       query,
@@ -169,24 +160,22 @@ TEST(Tranformer, MultiHeadedAttentionMultipleQueries) {
   int nHeads = 2;
 
   auto keys = af::constant(0.0, {E, B, S});
-  keys(0, 0, 2) = 10000; 
-  keys(0, 0, 1) = -10000; 
+  keys(0, 0, 2) = 10000;
+  keys(0, 0, 1) = -10000;
   // Second head
   keys(1, 0, 3) = -10000;
-  keys(1, 0, 0) = 10000; 
+  keys(1, 0, 0) = 10000;
 
   auto queries = af::constant(0.0, {E, B, L});
-  queries(0, 0, 0) = 10000;// Matches with 2
+  queries(0, 0, 0) = 10000; // Matches with 2
   queries(1, 0, 0) = -10000; // matches with 3
   // Second query
   queries(0, 0, 1) = -10000; // Matches with 1
   queries(1, 0, 1) = 10000; // matches 0
 
-
   auto query = Variable(queries, false);
   auto key = Variable(keys, false);
-  auto value = Variable(af::iota({ 1, 1, S }, {E, B, 1}), false);
-
+  auto value = Variable(af::iota({1, 1, S}, {E, B, 1}), false);
 
   auto result = transformerMultiheadAttention(
       query,
@@ -214,19 +203,22 @@ TEST(Tranformer, Size) {
   int numEncoderDecoder = 2;
   int mlpDim = 32;
   int numHeads = 8;
-  fl::app::object_detection::Transformer tr(C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
+  fl::app::object_detection::Transformer tr(
+      C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
 
-  std::vector<Variable> inputs = { 
-    Variable(af::randu(W, H, C, B), false), // input Projection
-    Variable(af::randu(af::dim4(W, H, 1, B)), false), // mask 
-    Variable(af::randu(af::dim4(C, bbox_queries)), false), // query_embed 
-    Variable(af::randu(af::dim4(W, H, C, B)), false) // query_embed 
+  std::vector<Variable> inputs = {
+      Variable(af::randu(W, H, C, B), false), // input Projection
+      Variable(af::randu(af::dim4(W, H, 1, B)), false), // mask
+      Variable(af::randu(af::dim4(C, bbox_queries)), false), // query_embed
+      Variable(af::randu(af::dim4(W, H, C, B)), false) // query_embed
   };
   auto output = tr(inputs)[0];
-  ASSERT_EQ(output.dims(0), C) << "Transformer should return model dim as first dimension";
-  ASSERT_EQ(output.dims(1), bbox_queries) << "Transformer did not return the correct number of labels";
-  ASSERT_EQ(output.dims(2), B) << "Transformer did not return the correct number of batches";
-
+  ASSERT_EQ(output.dims(0), C)
+      << "Transformer should return model dim as first dimension";
+  ASSERT_EQ(output.dims(1), bbox_queries)
+      << "Transformer did not return the correct number of labels";
+  ASSERT_EQ(output.dims(2), B)
+      << "Transformer did not return the correct number of batches";
 }
 
 TEST(Tranformer, Masked) {
@@ -242,44 +234,47 @@ TEST(Tranformer, Masked) {
   int mlpDim = 32;
   int numHeads = 8;
   int hiddenDim = 8;
-  fl::app::object_detection::Transformer tr(C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
+  fl::app::object_detection::Transformer tr(
+      C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
 
-  PositionalEmbeddingSine pos(C/2, 10000.0f, false, 0.0f);
+  PositionalEmbeddingSine pos(C / 2, 10000.0f, false, 0.0f);
 
   auto actualDims = af::dim4(maskW, maskH, 1, B);
   auto nonMask = af::constant(1, actualDims);
 
-  auto maskArray = af::constant(0, { W, H, 1, B });
-  maskArray(af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) = nonMask;
+  auto maskArray = af::constant(0, {W, H, 1, B});
+  maskArray(af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) =
+      nonMask;
   auto mask = Variable(maskArray, false);
   auto nonMaskPos = pos.forward(Variable(nonMask, false));
 
-  std::vector<Variable> nonMaskInput = { 
-    Variable(af::randu(maskW, maskH, C, B), false), // input Projection
-    Variable(af::constant(1, af::dim4(maskW, maskH, 1, B)), false), // mask 
-    Variable(af::randu(af::dim4(C, bbox_queries)), false), // query_embed 
-    nonMaskPos
-  };
+  std::vector<Variable> nonMaskInput = {
+      Variable(af::randu(maskW, maskH, C, B), false), // input Projection
+      Variable(af::constant(1, af::dim4(maskW, maskH, 1, B)), false), // mask
+      Variable(af::randu(af::dim4(C, bbox_queries)), false), // query_embed
+      nonMaskPos};
   auto nonMaskOutput = tr(nonMaskInput)[0];
   std::cout << "Here" << std::endl;
 
   auto nonMaskedSrc = af::randu(W, H, C, B);
-  nonMaskedSrc(af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) = nonMaskInput[0].array();
+  nonMaskedSrc(
+      af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) =
+      nonMaskInput[0].array();
 
   auto maskPos = pos.forward(mask);
 
-  std::vector<Variable> maskInput = { 
-    Variable(nonMaskedSrc, false), // input Projection
-    mask, // mask 
-    nonMaskInput[2], // query_embed 
-    maskPos
-  };
+  std::vector<Variable> maskInput = {
+      Variable(nonMaskedSrc, false), // input Projection
+      mask, // mask
+      nonMaskInput[2], // query_embed
+      maskPos};
   auto maskOutput = tr(maskInput)[0];
   af_print(nonMaskPos.array());
   af_print(maskPos.array());
   af_print(nonMaskOutput.array());
   af_print(maskOutput.array());
-  //ASSERT_EQ(output.dims(0), C) << "Transformer should return model dim as first dimension";
-  //ASSERT_EQ(output.dims(1), bbox_queries) << "Transformer did not return the correct number of labels";
-  //ASSERT_EQ(output.dims(2), B) << "Transformer did not return the correct number of batches";
+  // ASSERT_EQ(output.dims(0), C) << "Transformer should return model dim as
+  // first dimension";  ASSERT_EQ(output.dims(1), bbox_queries) << "Transformer
+  // did not return the correct number of labels";  ASSERT_EQ(output.dims(2), B)
+  // << "Transformer did not return the correct number of batches";
 }

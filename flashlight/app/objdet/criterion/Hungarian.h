@@ -7,8 +7,7 @@ namespace app {
 namespace objdet {
 
 class HungarianMatcher {
-
-public:
+ public:
   HungarianMatcher() = default;
 
   HungarianMatcher(
@@ -22,23 +21,21 @@ public:
       const std::vector<Variable>& targetBoxes,
       const std::vector<Variable>& targetClasses) const;
 
+ private:
+  float costClass_;
+  float costBbox_;
+  float costGiou_;
 
-private:
- float costClass_;
- float costBbox_;
- float costGiou_;
+  // First is SrcIdx, second is ColIdx
+  std::pair<af::array, af::array> matchBatch(
+      const Variable& predBoxes,
+      const Variable& predLogits,
+      const Variable& targetBoxes,
+      const Variable& targetClasses) const;
 
- // First is SrcIdx, second is ColIdx
- std::pair<af::array, af::array> matchBatch(
-     const Variable& predBoxes,
-     const Variable& predLogits,
-     const Variable& targetBoxes,
-     const Variable& targetClasses) const;
-
- af::array getCostMatrix(const Variable& input, const Variable& target);
-
+  af::array getCostMatrix(const Variable& input, const Variable& target);
 };
 
-} // objdet
-} // app
-} // fl
+} // namespace objdet
+} // namespace app
+} // namespace fl

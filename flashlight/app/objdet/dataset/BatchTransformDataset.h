@@ -5,10 +5,9 @@ namespace fl {
 namespace app {
 namespace objdet {
 
-
-template<class T>
-using BatchTransformFunction = std::function<
-T(const std::vector<std::vector<af::array>>&)>;
+template <class T>
+using BatchTransformFunction =
+    std::function<T(const std::vector<std::vector<af::array>>&)>;
 
 /*
  * This is a slightly more generalized batching dataset than allows you to
@@ -16,19 +15,18 @@ T(const std::vector<std::vector<af::array>>&)>;
  * because we would like to keep the target boxes and classes as a seperate
  * unbatched vector of arrays, while still batching the images
  */
-template<typename T>
+template <typename T>
 class BatchTransformDataset {
-
-public:
+ public:
   BatchTransformDataset(
-    std::shared_ptr<const Dataset> dataset,
-    int64_t batchsize,
-    BatchDatasetPolicy policy /* = BatchDatasetPolicy::INCLUDE_LAST */,
-    BatchTransformFunction<T> batchFn)
-   : dataset_(dataset),
-      batchSize_(batchsize),
-      batchPolicy_(policy),
-      batchFn_(batchFn) {
+      std::shared_ptr<const Dataset> dataset,
+      int64_t batchsize,
+      BatchDatasetPolicy policy /* = BatchDatasetPolicy::INCLUDE_LAST */,
+      BatchTransformFunction<T> batchFn)
+      : dataset_(dataset),
+        batchSize_(batchsize),
+        batchPolicy_(policy),
+        batchFn_(batchFn) {
     if (!dataset_) {
       throw std::invalid_argument("dataset to be batched is null");
     }
@@ -55,7 +53,7 @@ public:
     }
   }
 
-  ~BatchTransformDataset() {};
+  ~BatchTransformDataset(){};
 
   T get(const int64_t idx) {
     if (!(idx >= 0 && idx < size())) {
@@ -74,7 +72,7 @@ public:
       for (int64_t i = 0; i < fds.size(); ++i) {
         buffer[i].emplace_back(fds[i]);
       }
-  }
+    }
     return batchFn_(buffer);
   }
 
@@ -82,7 +80,7 @@ public:
     return size_;
   }
 
-private:
+ private:
   std::shared_ptr<const Dataset> dataset_;
   int64_t batchSize_;
   BatchDatasetPolicy batchPolicy_;
@@ -90,9 +88,8 @@ private:
 
   int64_t preBatchSize_; // Size of the dataset before batching
   int64_t size_;
-
 };
 
 } // namespace objdet
 } // namespace app
-} // namespace flashlight
+} // namespace fl

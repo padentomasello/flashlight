@@ -69,7 +69,10 @@ ResNetBlock::ResNetBlock(const int inC, const int outC, const int stride) {
 
 ResNetBottleneckBlock::ResNetBottleneckBlock() = default;
 
-ResNetBottleneckBlock::ResNetBottleneckBlock(const int inC, const int planes, const int stride) {
+ResNetBottleneckBlock::ResNetBottleneckBlock(
+    const int inC,
+    const int planes,
+    const int stride) {
   const int expansionFactor = 4;
   add(std::make_shared<Conv2D>(conv1x1(inC, planes, 1, 1)));
   add(std::make_shared<FrozenBatchNorm>(FrozenBatchNorm(2, planes)));
@@ -77,8 +80,10 @@ ResNetBottleneckBlock::ResNetBottleneckBlock(const int inC, const int planes, co
   add(std::make_shared<Conv2D>(conv3x3(planes, planes, stride, 1)));
   add(std::make_shared<FrozenBatchNorm>(FrozenBatchNorm(2, planes)));
   add(std::make_shared<ReLU>());
-  add(std::make_shared<Conv2D>(conv1x1(planes, planes * expansionFactor, 1, 1)));
-  add(std::make_shared<FrozenBatchNorm>(FrozenBatchNorm(2, planes * expansionFactor)));
+  add(std::make_shared<Conv2D>(
+      conv1x1(planes, planes * expansionFactor, 1, 1)));
+  add(std::make_shared<FrozenBatchNorm>(
+      FrozenBatchNorm(2, planes * expansionFactor)));
   add(std::make_shared<ReLU>());
   if (inC != planes * expansionFactor || stride > 1) {
     Sequential downsample;
@@ -86,11 +91,10 @@ ResNetBottleneckBlock::ResNetBottleneckBlock(const int inC, const int planes, co
     downsample.add(FrozenBatchNorm(2, planes * expansionFactor));
     add(downsample);
   }
-
 }
 
 std::vector<fl::Variable> ResNetBottleneckBlock::forward(
-  const std::vector<fl::Variable>& inputs) {
+    const std::vector<fl::Variable>& inputs) {
   auto c1 = module(0);
   auto bn1 = module(1);
   auto relu1 = module(2);
@@ -204,8 +208,8 @@ std::shared_ptr<Sequential> resnet34() {
   return model;
 
   ////model->add(ConvBnAct(512, 1000, 1, 1, 1, 1, false, false));
-  //model->add(View({1000, -1}));
-  //model->add(LogSoftmax());
+  // model->add(View({1000, -1}));
+  // model->add(LogSoftmax());
   return model;
 };
 
@@ -224,37 +228,37 @@ std::shared_ptr<Sequential> resnet50() {
   ////// conv5_x -> 14x14x256 -> 7x7x256
   model->add(ResNetBottleneckStage(256 * 4, 512, 3, 2));
   ////// pool 7x7x512 -> 1x1x512
-  //model->add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
+  // model->add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
 
-  //model->add(View(af::dim4(512 * 4, -1, 1, 1)));
-  //model->add(Linear(512 * 4, 1000));
+  // model->add(View(af::dim4(512 * 4, -1, 1, 1)));
+  // model->add(Linear(512 * 4, 1000));
   return model;
 }
 
-//std::shared_ptr<Sequential> resnet34() {
-  //auto model = std::make_shared<Sequential>();
-  //// conv1 -> 244x244x3 -> 112x112x64
-  //model->add(ConvBnAct(3, 64, 7, 7, 2, 2));
-  //// maxpool -> 112x122x64 -> 56x56x64
-  //model->add(Pool2D(3, 3, 2, 2, -1, -1, PoolingMode::MAX));
-  //// conv2_x -> 56x56x64 -> 56x56x64
-  //model->add(ResNetStage(64, 64, 3, 1));
-  //// conv3_x -> 56x56x64 -> 28x28x128
-  //model->add(ResNetStage(64, 128, 4, 2));
-  //// conv4_x -> 28x28x128 -> 14x14x256
-  //model->add(ResNetStage(128, 256, 6, 2));
-  //// conv5_x -> 14x14x256 -> 7x7x256
-  //model->add(ResNetStage(256, 512, 3, 2));
-  //// pool 7x7x512 -> 1x1x512
-  //model->add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
+// std::shared_ptr<Sequential> resnet34() {
+// auto model = std::make_shared<Sequential>();
+//// conv1 -> 244x244x3 -> 112x112x64
+// model->add(ConvBnAct(3, 64, 7, 7, 2, 2));
+//// maxpool -> 112x122x64 -> 56x56x64
+// model->add(Pool2D(3, 3, 2, 2, -1, -1, PoolingMode::MAX));
+//// conv2_x -> 56x56x64 -> 56x56x64
+// model->add(ResNetStage(64, 64, 3, 1));
+//// conv3_x -> 56x56x64 -> 28x28x128
+// model->add(ResNetStage(64, 128, 4, 2));
+//// conv4_x -> 28x28x128 -> 14x14x256
+// model->add(ResNetStage(128, 256, 6, 2));
+//// conv5_x -> 14x14x256 -> 7x7x256
+// model->add(ResNetStage(256, 512, 3, 2));
+//// pool 7x7x512 -> 1x1x512
+// model->add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
 
-  //model->add(View(af::dim4(512, -1, 1, 1)));
-  //model->add(Linear(512, 1000));
+// model->add(View(af::dim4(512, -1, 1, 1)));
+// model->add(Linear(512, 1000));
 
-  ////model->add(ConvBnAct(512, 1000, 1, 1, 1, 1, false, false));
-  //model->add(View({1000, -1}));
-  ////model->add(LogSoftmax());
-  //return model;
+////model->add(ConvBnAct(512, 1000, 1, 1, 1, 1, false, false));
+// model->add(View({1000, -1}));
+////model->add(LogSoftmax());
+// return model;
 //};
 
 } // namespace image

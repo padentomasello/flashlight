@@ -4,55 +4,51 @@
 
 #include "flashlight/ext/image/fl/models/Resnet.h"
 
-
 namespace fl {
 namespace ext {
 namespace image {
 
 // TODO HACK!!!!!!
 void freezeBatchNorm(std::shared_ptr<fl::Module> ptr) {
-	//std::cout << "Freezing " << ptr->prettyString() << std::endl;
-	if(dynamic_cast<fl::BatchNorm*>(ptr.get())) {
-		ptr->zeroGrad();
-	} else if(dynamic_cast<fl::Container*>(ptr.get())) {
-			for(auto mod : dynamic_cast<fl::Container*>(ptr.get())->modules()) {
-				freezeBatchNorm(mod);
-			}
-	}
+  // std::cout << "Freezing " << ptr->prettyString() << std::endl;
+  if (dynamic_cast<fl::BatchNorm*>(ptr.get())) {
+    ptr->zeroGrad();
+  } else if (dynamic_cast<fl::Container*>(ptr.get())) {
+    for (auto mod : dynamic_cast<fl::Container*>(ptr.get())->modules()) {
+      freezeBatchNorm(mod);
+    }
+  }
 }
 
-//class Joiner: public Container {
+// class Joiner: public Container {
 
-  //Joiner(std::shared_ptr<Module> base) :
-    //base_(base) {
-      //add(base_);
-    //}
+// Joiner(std::shared_ptr<Module> base) :
+// base_(base) {
+// add(base_);
+//}
 
-  //std::vector<Variable> forward(const std::vector<Variable&> inputs) {
-    //auto images = inputs[0];
-    //auto masks = inputs[1];
-    //auto outputs = base_->forward(images);
-    //std::vector<Variable> results;
-    //for(auto output : outputs) {
-      //results.push_back(output);
-      //auto resized_mask = af::resize(masks, output.dim(0), output.dim(1));
-      //results.push_back(fl::Variable(resized_mask, false));
-    //}
-  //}
+// std::vector<Variable> forward(const std::vector<Variable&> inputs) {
+// auto images = inputs[0];
+// auto masks = inputs[1];
+// auto outputs = base_->forward(images);
+// std::vector<Variable> results;
+// for(auto output : outputs) {
+// results.push_back(output);
+// auto resized_mask = af::resize(masks, output.dim(0), output.dim(1));
+// results.push_back(fl::Variable(resized_mask, false));
+//}
+//}
 
-  //private:
-    //std::shared_ptr<Module> base_;
+// private:
+// std::shared_ptr<Module> base_;
 //};
 
 // TODO Can probably generalize this
 class Resnet34Backbone : public Container {
-
-public:
-  Resnet34Backbone() :
-    backbone_(std::make_shared<Sequential>()),
-    tail_(std::make_shared<Sequential>())
-  {
-
+ public:
+  Resnet34Backbone()
+      : backbone_(std::make_shared<Sequential>()),
+        tail_(std::make_shared<Sequential>()) {
     backbone_->add(ConvBnAct(3, 64, 7, 7, 2, 2));
     // maxpool -> 112x122x64 -> 56x56x64
     backbone_->add(Pool2D(3, 3, 2, 2, -1, -1, PoolingMode::MAX));
@@ -76,7 +72,7 @@ public:
   std::vector<Variable> forward(const std::vector<Variable>& input) {
     auto features = module(0)->forward(input);
     auto output = module(1)->forward(features);
-    return { output[0], features[0] };
+    return {output[0], features[0]};
   }
 
   std::string prettyString() const {
@@ -84,10 +80,10 @@ public:
   }
 
  private:
-   std::shared_ptr<Sequential> backbone_;
-   std::shared_ptr<Sequential> tail_;
-   //FL_SAVE_LOAD_WITH_BASE(fl::Container, backbone_, tail_)
-   FL_SAVE_LOAD_WITH_BASE(fl::Container)
+  std::shared_ptr<Sequential> backbone_;
+  std::shared_ptr<Sequential> tail_;
+  // FL_SAVE_LOAD_WITH_BASE(fl::Container, backbone_, tail_)
+  FL_SAVE_LOAD_WITH_BASE(fl::Container)
 };
 
 } // end namespace image

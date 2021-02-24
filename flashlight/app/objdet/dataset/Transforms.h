@@ -25,12 +25,8 @@ enum DatasetIndices {
  * @param ty is the target height
  * This function will remove bounding boxes which do not exist within the crop
  */
-std::vector<af::array> crop(
-    const std::vector<af::array>& in,
-    int x,
-    int y,
-    int tw,
-    int th);
+std::vector<af::array>
+crop(const std::vector<af::array>& in, int x, int y, int tw, int th);
 
 /*
  * Flip the image horizontally and adjust the bounding boxes acordingly
@@ -52,7 +48,8 @@ std::vector<af::array> normalize(const std::vector<af::array>& in);
  * side is shorter than @param maxsize.
  * Adjust bboxes accordingly.
  */
-std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int maxsize);
+std::vector<af::array>
+randomResize(std::vector<af::array> inputs, int size, int maxsize);
 
 /*
  * Returns a function that "Normalizes" bounding boxes so that they represent
@@ -60,9 +57,8 @@ std::vector<af::array> randomResize(std::vector<af::array> inputs, int size, int
  * Also normalize images by @param meanVector and @param stdVector
  */
 TransformAllFunction Normalize(
-    std::vector<float> meanVector = {0.485, 0.456, 0.406}, 
-    std::vector<float> stdVector= {0.229, 0.224, 0.225}
-);
+    std::vector<float> meanVector = {0.485, 0.456, 0.406},
+    std::vector<float> stdVector = {0.229, 0.224, 0.225});
 
 /*
  * Returns a `TransformAllFunction` which randomly selects from @param fns

@@ -13,7 +13,7 @@ fl::Variable cxcywh2xyxy(const fl::Variable& bboxes);
 
 af::array xyxy2cxcywh(const af::array& bboxes);
 
-typedef Variable(* batchFuncVar_t) (const Variable& lhs, const Variable& rhs);
+typedef Variable (*batchFuncVar_t)(const Variable& lhs, const Variable& rhs);
 
 fl::Variable
 cartesian(const fl::Variable& x, const fl::Variable& y, batchFuncVar_t fn);

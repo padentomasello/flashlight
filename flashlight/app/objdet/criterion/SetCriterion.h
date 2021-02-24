@@ -9,18 +9,15 @@ namespace fl {
 namespace app {
 namespace objdet {
 
-Variable  weightedCategoricalCrossEntropy(
-      const Variable& input,
-      const Variable& targets,
-      const Variable& weight,
-      ReduceMode reduction,
-      int ignoreIndex
-    );
-
+Variable weightedCategoricalCrossEntropy(
+    const Variable& input,
+    const Variable& targets,
+    const Variable& weight,
+    ReduceMode reduction,
+    int ignoreIndex);
 
 class SetCriterion {
-
-public:
+ public:
   using LossDict = std::unordered_map<std::string, Variable>;
 
   SetCriterion(
@@ -41,8 +38,7 @@ public:
       const std::vector<Variable>& targetBoxes,
       const std::vector<Variable>& targetClasses,
       const std::vector<std::pair<af::array, af::array>>& indices,
-      const int numBoxes
-      );
+      const int numBoxes);
 
   LossDict lossCardinality(
       const Variable& predBoxes,
@@ -71,7 +67,8 @@ public:
       const std::vector<Variable>& targetClasses);
 
   std::unordered_map<std::string, float> getWeightDict();
-private:
+
+ private:
   std::pair<af::array, af::array> getSrcPermutationIdx(
       const std::vector<std::pair<af::array, af::array>>& indices);
 
@@ -82,7 +79,6 @@ private:
   const HungarianMatcher matcher_;
   const std::unordered_map<std::string, float> weightDict_;
   const float eosCoef_;
-
 };
 
 } // end namespace objdet

@@ -2,8 +2,8 @@
 
 #include <arrayfire.h>
 #include <assert.h>
-#include <tuple>
 #include <iostream>
+#include <tuple>
 
 #include "flashlight/fl/autograd/Functions.h"
 
@@ -16,8 +16,8 @@ af::array xyxy2cxcywh(const af::array& bboxes) {
   auto y0 = bboxes.row(1);
   auto x1 = bboxes.row(2);
   auto y1 = bboxes.row(3);
-  af::array result =  af::join(0, (x0 + x1) / 2, (y0 + y1) / 2,
-      (x1 - x0), (y1 - y0));
+  af::array result =
+      af::join(0, (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0), (y1 - y0));
   return result;
 }
 
@@ -27,27 +27,23 @@ fl::Variable cxcywh2xyxy(const Variable& bboxes) {
   auto y_c = bboxes.row(1);
   auto w = bboxes.row(2);
   auto h = bboxes.row(3);
-  transformed = fl::concatenate({
-      x_c - 0.5 * w,
-      y_c - 0.5 * h,
-      x_c + 0.5 * w,
-      y_c + 0.5 * h
-  }, 0);
+  transformed = fl::concatenate(
+      {x_c - 0.5 * w, y_c - 0.5 * h, x_c + 0.5 * w, y_c + 0.5 * h}, 0);
   return transformed;
 }
 
 fl::Variable flatten(const fl::Variable& x, int start, int stop) {
   auto dims = x.dims();
-  af::dim4 new_dims = { 1, 1, 1, 1};
+  af::dim4 new_dims = {1, 1, 1, 1};
   int flattened_dims = 1;
-  for(int i = start; i <= stop; i++) {
+  for (int i = start; i <= stop; i++) {
     flattened_dims = flattened_dims * dims[i];
   }
-  for(int i = 0; i < start; i++) {
+  for (int i = 0; i < start; i++) {
     new_dims[i] = dims[i];
   }
   new_dims[start] = flattened_dims;
-  for(int i = start + 1; i < (4 - stop); i++) {
+  for (int i = start + 1; i < (4 - stop); i++) {
     new_dims[i] = dims[i + stop];
   }
   return fl::moddims(x, new_dims);
@@ -62,12 +58,9 @@ fl::Variable boxArea(const fl::Variable& bboxes) {
   return result;
 }
 
-typedef Variable(* batchFuncVar_t) (const Variable& lhs, const Variable& rhs);
+typedef Variable (*batchFuncVar_t)(const Variable& lhs, const Variable& rhs);
 
-Variable cartesian(
-    const Variable& x,
-    const Variable& y,
-    batchFuncVar_t fn) {
+Variable cartesian(const Variable& x, const Variable& y, batchFuncVar_t fn) {
   assert(y.dims(3) == 1);
   assert(x.dims(3) == 1);
   assert(x.dims(2) == y.dims(2));
@@ -100,8 +93,12 @@ fl::Variable generalizedBoxIou(
     const fl::Variable& bboxes1,
     const fl::Variable& bboxes2) {
   // Make sure all boxes are properly formed
-  assert(af::count(allTrue(bboxes1.array().rows(2, 3) >= bboxes1.array().rows(0, 1))).scalar<uint32_t>());
-  assert(af::count(allTrue(bboxes2.array().rows(2, 3) >= bboxes2.array().rows(0, 1))).scalar<uint32_t>());
+  assert(af::count(
+             allTrue(bboxes1.array().rows(2, 3) >= bboxes1.array().rows(0, 1)))
+             .scalar<uint32_t>());
+  assert(af::count(
+             allTrue(bboxes2.array().rows(2, 3) >= bboxes2.array().rows(0, 1)))
+             .scalar<uint32_t>());
 
   Variable iou, uni;
   std::tie(iou, uni) = boxIou(bboxes1, bboxes2);
@@ -114,7 +111,7 @@ fl::Variable generalizedBoxIou(
 }
 
 Variable l1Loss(const Variable& input, const Variable& target) {
-  return flatten(sum(abs(input - target), {0} ), 0, 1);
+  return flatten(sum(abs(input - target), {0}), 0, 1);
 }
 
 } // namespace objdet

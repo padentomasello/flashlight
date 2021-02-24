@@ -1,11 +1,10 @@
 #pragma once
 #include <gflags/gflags.h>
 
-#include "flashlight/ext/image/fl/dataset/Jpeg.h"
-#include "flashlight/ext/image/af/Transforms.h"
-#include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/app/objdet/dataset/BatchTransformDataset.h"
-
+#include "flashlight/ext/image/af/Transforms.h"
+#include "flashlight/ext/image/fl/dataset/Jpeg.h"
+#include "flashlight/fl/dataset/datasets.h"
 
 namespace fl {
 namespace app {
@@ -21,11 +20,8 @@ struct CocoData {
   std::vector<af::array> target_labels;
 };
 
-
 class CocoDataset {
-
-public:
-
+ public:
   CocoDataset(
       const std::string& list_file,
       int world_rank,
@@ -33,12 +29,12 @@ public:
       int batch_size,
       int num_threads,
       int prefetch_size,
-      bool val
-      ); 
+      bool val);
 
   std::shared_ptr<Dataset> getLabels(std::string list_file);
 
-  std::shared_ptr<Dataset> getImages(std::string list_file,
+  std::shared_ptr<Dataset> getImages(
+      std::string list_file,
       std::vector<ext::image::ImageTransform>& transformfns);
 
   using iterator = detail::DatasetIterator<CocoDataset, CocoData>;
@@ -57,12 +53,11 @@ public:
 
   void resample();
 
-private:
+ private:
   std::shared_ptr<BatchTransformDataset<CocoData>> batched_;
   std::shared_ptr<ShuffleDataset> shuffled_;
-
 };
 
 } // namespace objdet
 } // namespace app
-} // namespace flashlight
+} // namespace fl

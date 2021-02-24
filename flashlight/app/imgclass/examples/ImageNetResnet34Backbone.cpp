@@ -12,14 +12,14 @@
 #include <gflags/gflags.h>
 
 #include "flashlight/app/imclass/dataset/Imagenet.h"
-#include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/ext/common/DistributedUtils.h"
 #include "flashlight/ext/image/af/Transforms.h"
 #include "flashlight/ext/image/fl/dataset/DistributedDataset.h"
 #include "flashlight/ext/image/fl/models/Resnet34Backbone.h"
-#include "flashlight/lib/common/System.h"
+#include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
+#include "flashlight/lib/common/System.h"
 
 DEFINE_string(data_dir, "", "Directory of imagenet data");
 DEFINE_double(train_lr, 0.1f, "Learning rate");
@@ -173,7 +173,8 @@ int main(int argc, char** argv) {
   // computed
   fl::distributeModuleGrads(model, reducer);
 
-  SGDOptimizer opt(model->params(), FLAGS_train_lr, FLAGS_train_momentum, FLAGS_train_wd);
+  SGDOptimizer opt(
+      model->params(), FLAGS_train_lr, FLAGS_train_momentum, FLAGS_train_wd);
 
   auto lrScheduler = [&opt](int epoch) {
     // Adjust learning rate every 30 epoch after 30
@@ -207,7 +208,8 @@ int main(int argc, char** argv) {
   TopKMeter top5Acc(5);
   TopKMeter top1Acc(1);
   AverageValueMeter trainLossMeter;
-  for (int epoch = (FLAGS_exp_checkpoint_epoch + 1); epoch < FLAGS_train_epochs; epoch++) {
+  for (int epoch = (FLAGS_exp_checkpoint_epoch + 1); epoch < FLAGS_train_epochs;
+       epoch++) {
     trainDataset.resample();
     lrScheduler(epoch);
 
@@ -243,18 +245,18 @@ int main(int argc, char** argv) {
       // Compute and record the prediction error.
       double trainLoss = trainLossMeter.value()[0];
       if (++idx % 50 == 0) {
-
         fl::ext::syncMeter(trainLossMeter);
         fl::ext::syncMeter(timeMeter);
         fl::ext::syncMeter(top5Acc);
         fl::ext::syncMeter(top1Acc);
         double time = timeMeter.value();
         double samplePerSecond = (idx * FLAGS_data_batch_size) / time;
-        FL_LOG_MASTER(fl::INFO) << "Epoch " << epoch << std::setprecision(5) << " Batch: " << idx
-                  << " Samples per second " << samplePerSecond
-                  << ": Avg Train Loss: " << trainLoss
-                  << ": Train Top5 Accuracy( %): " << top5Acc.value()
-                  << ": Train Top1 Accuracy( %): " << top1Acc.value();
+        FL_LOG_MASTER(fl::INFO)
+            << "Epoch " << epoch << std::setprecision(5) << " Batch: " << idx
+            << " Samples per second " << samplePerSecond
+            << ": Avg Train Loss: " << trainLoss
+            << ": Train Top5 Accuracy( %): " << top5Acc.value()
+            << ": Train Top1 Accuracy( %): " << top1Acc.value();
         top5Acc.reset();
         top1Acc.reset();
         trainLossMeter.reset();
@@ -267,9 +269,9 @@ int main(int argc, char** argv) {
     std::tie(valLoss, valTop5Err, valTop1Error) = evalLoop(model, valDataset);
 
     FL_LOG_MASTER(fl::INFO) << "Epoch " << epoch << std::setprecision(5)
-              << " Validation Loss: " << valLoss
-              << " Validation Top5 Error (%): " << valTop5Err
-              << " Validation Top1 Error (%): " << valTop1Error;
+                            << " Validation Loss: " << valLoss
+                            << " Validation Top5 Error (%): " << valTop5Err
+                            << " Validation Top1 Error (%): " << valTop1Error;
     saveModel(epoch);
   }
   FL_LOG_MASTER(fl::INFO) << "Training complete";

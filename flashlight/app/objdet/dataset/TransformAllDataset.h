@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <arrayfire.h>
 
@@ -8,7 +8,8 @@ namespace fl {
 namespace app {
 namespace objdet {
 
-using TransformAllFunction = std::function<std::vector<af::array>(const std::vector<af::array>&)>;
+using TransformAllFunction =
+    std::function<std::vector<af::array>(const std::vector<af::array>&)>;
 
 /**
  * A view into a dataset where all arrays are transformed using the same
@@ -19,23 +20,23 @@ using TransformAllFunction = std::function<std::vector<af::array>(const std::vec
  * but then also adjust the bounding boxes accordinly
  */
 class TransformAllDataset : public Dataset {
-
-public:
-
+ public:
   TransformAllDataset(
-    std::shared_ptr<const Dataset> dataset,
-    TransformAllFunction fn) : dataset_(dataset), fn_(fn) {};
+      std::shared_ptr<const Dataset> dataset,
+      TransformAllFunction fn)
+      : dataset_(dataset), fn_(fn){};
 
   std::vector<af::array> get(const int64_t idx) const override {
     return fn_(dataset_->get(idx));
   }
 
-  int64_t size() const override { return dataset_->size(); };
+  int64_t size() const override {
+    return dataset_->size();
+  };
 
-private:
+ private:
   std::shared_ptr<const Dataset> dataset_;
   const TransformAllFunction fn_;
-
 };
 
 } // namespace objdet

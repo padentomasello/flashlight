@@ -8,12 +8,12 @@ namespace app {
 namespace objdet {
 
 class PositionalEmbeddingSine : public Container {
-  public:
-    explicit PositionalEmbeddingSine(
-        const int numPosFeats,
-        const int temperature,
-        const bool normalize,
-        const float scale);
+ public:
+  explicit PositionalEmbeddingSine(
+      const int numPosFeats,
+      const int temperature,
+      const bool normalize,
+      const float scale);
 
   std::vector<Variable> forward(const std::vector<Variable>& input) override;
 
@@ -21,13 +21,18 @@ class PositionalEmbeddingSine : public Container {
 
   std::string prettyString() const override;
 
-private:
- FL_SAVE_LOAD_WITH_BASE(fl::Container, numPosFeats_, temperature_, normalize_, scale_)
+ private:
+  FL_SAVE_LOAD_WITH_BASE(
+      fl::Container,
+      numPosFeats_,
+      temperature_,
+      normalize_,
+      scale_)
   int numPosFeats_;
   int temperature_;
   bool normalize_;
   float scale_;
-    PositionalEmbeddingSine();
+  PositionalEmbeddingSine();
 };
 
 } // end namespace objdet
