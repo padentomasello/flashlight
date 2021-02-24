@@ -421,12 +421,14 @@ int main(int argc, char** argv) {
     if(FLAGS_enable_distributed) {
       barrier();
     }
-    std::stringstream ss;
-    ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-      << FLAGS_set_env << " "
-      << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
-      << FLAGS_eval_script << " --dir "
-      << FLAGS_eval_dir;
+    if(fl::getWorldRank() == 0) {
+      std::stringstream ss;
+      ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
+        << FLAGS_set_env << " "
+        << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
+        << FLAGS_eval_script << " --dir "
+        << FLAGS_eval_dir;
+    }
     int numAttempts = 10;
     for(int i = 0; i < numAttempts; i++) {
       int rv = system(ss.str().c_str());

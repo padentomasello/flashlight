@@ -28,6 +28,7 @@ mkdir -p $EVAL_DIR
 $BUILD_DIR/flashlight/build/Detr continue $RUN_DIR \
 --eval_dir $EVAL_DIR \
 --eval_script $BUILD_DIR/flashlight/flashlight/app/objdet/scripts/eval_coco.py \
+--data_dir /private/home/padentomasello/data/coco_new/ \
 --set_env "LD_LIBRARY_PATH=$BUILD_DIR/lib/:$LD_LIBRARY_PATH" \
  2>&1  # Ugh why does FL log send to std::err? 
 
