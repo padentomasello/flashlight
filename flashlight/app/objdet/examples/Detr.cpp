@@ -16,60 +16,29 @@
 #include "flashlight/app/objdet/nn/PositionalEmbeddingSine.h"
 #include "flashlight/app/objdet/nn/Transformer.h"
 #include "flashlight/app/objdet/nn/Detr.h"
+#include "flashlight/app/objdet/common/Defines.h"
 
 #include "flashlight/ext/common/DistributedUtils.h"
+#include "flashlight/ext/common/Runtime.h"
 #include "flashlight/ext/image/af/Transforms.h"
-//#include "flashlight/ext/image/fl/models/Resnet50Backbone.h"
 #include "flashlight/ext/image/fl/models/Resnet50Backbone.h"
-#include "flashlight/ext/image/fl/models/Resnet.h"
 #include "flashlight/ext/common/Serializer.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
-#include "flashlight/fl/flashlight.h"
 #include "flashlight/lib/common/String.h"
-#include "flashlight/lib/common/System.h"
+#include "flashlight/lib/common/String.h"
+//#include "flashlight/lib/common/System.h"
 
-constexpr const char* kTrainMode = "train";
-constexpr const char* kContinueMode = "continue";
-constexpr const char* kForkMode = "fork";
-constexpr const char* kGflags = "gflags";
-constexpr const char* kCommandLine = "commandline";
-constexpr const char* kProgramName = "programname";
-constexpr const char* kTimestamp = "timestamp";
-constexpr const char* kUserName = "username";
-constexpr const char* kHostName = "hostname";
-constexpr const char* kEpoch = "epoch";
-constexpr const char* kUpdates = "updates";
-constexpr const char* kRunIdx = "runIdx";
-constexpr const char* kRunPath = "runPath";
 
-using fl::lib::format;
-using fl::lib::pathsConcat;
 using fl::lib::fileExists;
+using fl::lib::format;
 using fl::ext::Serializer;
 using fl::lib::getCurrentDate;
+using fl::ext::getRunFile;
+using fl::ext::serializeGflags;
+
 
 #define FL_LOG_MASTER(lvl) LOG_IF(lvl, (fl::getWorldRank() == 0))
-
-//TODO move out of ASR
-std::string
-getRunFile(const std::string& name, int runidx, const std::string& runpath) {
-  auto fname = format("%03d_%s", runidx, name.c_str());
-  return pathsConcat(runpath, fname);
-};
-
-std::string serializeGflags(const std::string& separator = "\n") {
-  std::stringstream serialized;
-  std::vector<gflags::CommandLineFlagInfo> allFlags;
-  gflags::GetAllFlags(&allFlags);
-  std::string currVal;
-  for (auto itr = allFlags.begin(); itr != allFlags.end(); ++itr) {
-    gflags::GetCommandLineOption(itr->name.c_str(), &currVal);
-    serialized << "--" << itr->name << "=" << currVal << separator;
-  }
-  return serialized.str();
-}
-
 
 
 DEFINE_string(data_dir, "/private/home/padentomasello/data/coco_new/", "Directory of imagenet data");
@@ -99,7 +68,6 @@ DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(checkpoint, -1, "Load from checkpoint");
 
 DEFINE_string(eval_dir, "/private/home/padentomasello/data/coco/output/", "Directory to dump images to run evaluation script on");
-DEFINE_bool(print_params, false, "Directory to dump images to run evaluation script on");
 DEFINE_bool(pretrained, true, "Directory to dump images to run evaluation script on");
 DEFINE_string(pytorch_init, "", "Directory to dump images to run evaluation script on");
 DEFINE_string(flagsfile, "", "Directory to dump images to run evaluation script on");
@@ -108,6 +76,7 @@ DEFINE_string(eval_script,"/private/home/padentomasello/code/flashlight/flashlig
 DEFINE_string(set_env, "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ", "Set environment");
 DEFINE_int64(eval_break, -1, "Break eval after this many iters");
 DEFINE_bool(eval_only, false, "Weather to just run eval");
+
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
   LOG(INFO) << "Parsing command line flags";
   gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -116,52 +85,13 @@ void parseCmdLineFlagsWrapper(int argc, char** argv) {
     gflags::ReadFromFlagsFile(FLAGS_flagsfile, argv[0], true);
   }
   gflags::ParseCommandLineFlags(&argc, &argv, false);
-  // Only new flags are re-serialized. Copy any values from deprecated flags to
-  // new flags when deprecated flags are present and corresponding new flags
-  // aren't
-  //handleDeprecatedFlags();
 }
-
 
 using namespace fl;
 using namespace fl::ext::image;
 using namespace fl::app::objdet;
 
-// TODO Refactor
-//const int32_t backboneChannels = 512;
-
-
-void printParamsAndGrads(std::shared_ptr<fl::Module> mod) {
-  auto params = mod->params();
-  int i = 0;
-  for(auto param : params) {
-    double paramMean = af::mean<double>(param.array());
-    double paramStd = af::stdev<double>(param.array());
-    double gradMean = -1.111111111111;
-    double gradStd = -1.111111111111;
-    if(param.isGradAvailable()) {
-      auto grad = param.grad();
-      gradMean = af::mean<double>(grad.array());
-      gradStd = af::stdev<double>(grad.array());
-    }
-    std::cout << " i: " << i
-      << " mean: " << paramMean
-      << " std: " << paramStd
-      << " grad mean: " << gradMean
-      << " grad std: " << gradStd
-      << std::endl;
-    i++;
-  }
-}
-
 int main(int argc, char** argv) {
-  std::stringstream ss;
-  ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-    << FLAGS_set_env << " "
-    << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
-    << "-c 'import arrayfire as af'";
-  system(ss.str().c_str());
-
 
   //gflags::ParseCommandLineFlags(&argc, &argv, false);
   int runIdx = 1; // current #runs in this path
@@ -594,12 +524,6 @@ int main(int argc, char** argv) {
         reducer->finalize();
       }
 
-      if(FLAGS_print_params) {
-        std::cout << "Print detr params + grads" << std::endl;
-        printParamsAndGrads(detr);
-        std::cout << "Print backbone params + grads" << std::endl;
-        printParamsAndGrads(backbone);
-      }
       fl::clipGradNorm(detr->params(), 0.1);
 
       opt->step();
