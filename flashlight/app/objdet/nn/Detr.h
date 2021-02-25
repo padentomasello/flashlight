@@ -71,12 +71,9 @@ class Detr : public Container {
             features.dims(1),
             AF_INTERP_NEAREST),
         true);
-    // auto features = input[0];
-    // auto mask = input[1];
     auto backboneFeatures = input;
     auto inputProjection = inputProj_->forward(features);
     auto posEmbed = posEmbed_->forward({mask})[0];
-    // return { inputProjection, posEmbed };
     auto hs = transformer_->forward(
         inputProjection, mask, queryEmbed_->param(0), posEmbed);
 
@@ -87,7 +84,6 @@ class Detr : public Container {
   }
 
   std::string prettyString() const {
-    // TODO print params
     return "Detection Transformer!";
   }
 

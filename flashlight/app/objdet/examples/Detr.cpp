@@ -21,7 +21,7 @@
 #include "flashlight/ext/common/Runtime.h"
 #include "flashlight/ext/common/Serializer.h"
 #include "flashlight/ext/image/af/Transforms.h"
-#include "flashlight/ext/image/fl/models/Resnet50Backbone.h"
+#include "flashlight/app/objdet/models/Resnet50Backbone.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
 #include "flashlight/lib/common/String.h"
