@@ -232,6 +232,27 @@ int main(int argc, char** argv) {
       {kRunIdx, std::to_string(runIdx)},
       {kRunPath, runPath}};
 
+  /////////////////////////
+  // Setup distributed training
+  ////////////////////////
+  std::shared_ptr<fl::Reducer> reducer = nullptr;
+  if (FLAGS_distrbuted_enable) {
+    fl::ext::initDistributed(
+        FLAGS_distributed_world_rank, FLAGS_distributed_world_size, 8, FLAGS_distributed_rndv_filepath);
+
+    reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
+    // synchronize parameters of the model so that the parameters in each
+    // process is the same
+    fl::allReduceParameters(detr);
+    // fl::allReduceParameters(backbone);
+
+    // Add a hook to synchronize gradients of model parameters as they are
+    // computed
+    fl::distributeModuleGrads(detr, reducer);
+  }
+  const int worldRank = fl::getWorldRank();
+  const int worldSize = fl::getWorldSize();
+
   ////////////////////////////
   // Create models
   ////////////////////////////
@@ -324,26 +345,6 @@ int main(int argc, char** argv) {
     opt2->setLr(newLr * 0.1);
   };
 
-  /////////////////////////
-  // Setup distributed training
-  ////////////////////////
-  std::shared_ptr<fl::Reducer> reducer = nullptr;
-  if (FLAGS_distrbuted_enable) {
-    fl::ext::initDistributed(
-        FLAGS_distributed_world_rank, FLAGS_distributed_world_size, 8, FLAGS_distributed_rndv_filepath);
-
-    reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
-    // synchronize parameters of the model so that the parameters in each
-    // process is the same
-    fl::allReduceParameters(detr);
-    // fl::allReduceParameters(backbone);
-
-    // Add a hook to synchronize gradients of model parameters as they are
-    // computed
-    fl::distributeModuleGrads(detr, reducer);
-  }
-  const int worldRank = fl::getWorldRank();
-  const int worldSize = fl::getWorldSize();
 
   /////////////////////////
   // Create Datasets
