@@ -27,28 +27,28 @@ Conv2D conv1x1(int inC, int outC, int stride, int groups) {
 
 } // namespace
 
-//ConvBnAct::ConvBnAct() = default;
+ConvBnAct::ConvBnAct() = default;
 
-//ConvBnAct::ConvBnAct(
-    //const int inC,
-    //const int outC,
-    //const int kw,
-    //const int kh,
-    //const int sx,
-    //const int sy,
-    //bool bn,
-    //bool act) {
-  //const auto pad = PaddingMode::SAME;
-  //const bool bias = !bn;
-  //add(std::make_shared<fl::Conv2D>(
-      //inC, outC, kw, kh, sx, sy, pad, pad, 1, 1, bias));
-  //if (bn) {
-    //add(std::make_shared<fl::FrozenBatchNorm>(2, outC));
-  //}
-  //if (act) {
-    //add(std::make_shared<fl::ReLU>());
-  //}
-//}
+ConvBnAct::ConvBnAct(
+    const int inC,
+    const int outC,
+    const int kw,
+    const int kh,
+    const int sx,
+    const int sy,
+    bool bn,
+    bool act) {
+  const auto pad = PaddingMode::SAME;
+  const bool bias = !bn;
+  add(std::make_shared<fl::Conv2D>(
+      inC, outC, kw, kh, sx, sy, pad, pad, 1, 1, bias));
+  if (bn) {
+    add(std::make_shared<fl::FrozenBatchNorm>(2, outC));
+  }
+  if (act) {
+    add(std::make_shared<fl::ReLU>());
+  }
+}
 
 ResNetBlock::ResNetBlock() = default;
 
@@ -235,31 +235,6 @@ std::shared_ptr<Sequential> resnet50() {
   return model;
 }
 
-// std::shared_ptr<Sequential> resnet34() {
-// auto model = std::make_shared<Sequential>();
-//// conv1 -> 244x244x3 -> 112x112x64
-// model->add(ConvBnAct(3, 64, 7, 7, 2, 2));
-//// maxpool -> 112x122x64 -> 56x56x64
-// model->add(Pool2D(3, 3, 2, 2, -1, -1, PoolingMode::MAX));
-//// conv2_x -> 56x56x64 -> 56x56x64
-// model->add(ResNetStage(64, 64, 3, 1));
-//// conv3_x -> 56x56x64 -> 28x28x128
-// model->add(ResNetStage(64, 128, 4, 2));
-//// conv4_x -> 28x28x128 -> 14x14x256
-// model->add(ResNetStage(128, 256, 6, 2));
-//// conv5_x -> 14x14x256 -> 7x7x256
-// model->add(ResNetStage(256, 512, 3, 2));
-//// pool 7x7x512 -> 1x1x512
-// model->add(Pool2D(7, 7, 1, 1, 0, 0, fl::PoolingMode::AVG_EXCLUDE_PADDING));
-
-// model->add(View(af::dim4(512, -1, 1, 1)));
-// model->add(Linear(512, 1000));
-
-////model->add(ConvBnAct(512, 1000, 1, 1, 1, 1, false, false));
-// model->add(View({1000, -1}));
-////model->add(LogSoftmax());
-// return model;
-//};
 
 } // namespace image
 } // namespace ext

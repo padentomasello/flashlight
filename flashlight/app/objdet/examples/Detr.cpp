@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
   std::shared_ptr<Resnet50Backbone> backbone;
   if (FLAGS_pretrained) {
     std::string modelPath =
-        "/checkpoint/padentomasello/models/resnet50/from_pytorch_fbn2";
+        "/checkpoint/padentomasello/models/resnet50/pretrained";
     fl::load(modelPath, backbone);
   } else {
     backbone = std::make_shared<Resnet50Backbone>();
