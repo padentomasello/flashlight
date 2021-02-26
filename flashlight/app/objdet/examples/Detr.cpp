@@ -62,7 +62,7 @@ DEFINE_string(
     "",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
-DEFINE_bool(distrbuted_enable, true, "Enable distributed training");
+DEFINE_bool(distributed_enable, true, "Enable distributed training");
 DEFINE_uint64(data_batch_size, 2, "Total batch size across all gpus");
 
 DEFINE_string(
@@ -135,7 +135,7 @@ void evalLoop(
     af::saveArray("bboxes", bboxes, outputFile.c_str(), true);
     idx++;
   }
-  if (FLAGS_distrbuted_enable) {
+  if (FLAGS_distributed_enable) {
     barrier();
   }
   if (fl::getWorldRank() == 0) {
@@ -154,7 +154,7 @@ void evalLoop(
       sleep(5);
     }
   }
-  if (FLAGS_distrbuted_enable) {
+  if (FLAGS_distributed_enable) {
     barrier();
   }
   std::stringstream ss2;
@@ -236,19 +236,11 @@ int main(int argc, char** argv) {
   // Setup distributed training
   ////////////////////////
   std::shared_ptr<fl::Reducer> reducer = nullptr;
-  if (FLAGS_distrbuted_enable) {
+  if (FLAGS_distributed_enable) {
     fl::ext::initDistributed(
         FLAGS_distributed_world_rank, FLAGS_distributed_world_size, 8, FLAGS_distributed_rndv_filepath);
 
     reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
-    // synchronize parameters of the model so that the parameters in each
-    // process is the same
-    fl::allReduceParameters(detr);
-    // fl::allReduceParameters(backbone);
-
-    // Add a hook to synchronize gradients of model parameters as they are
-    // computed
-    fl::distributeModuleGrads(detr, reducer);
   }
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
@@ -387,6 +379,16 @@ int main(int argc, char** argv) {
       return 0;
     }
   }
+  if (FLAGS_distributed_enable) {
+    // synchronize parameters of the model so that the parameters in each
+    // process is the same
+    fl::allReduceParameters(detr);
+    // fl::allReduceParameters(backbone);
+
+    // Add a hook to synchronize gradients of model parameters as they are
+    // computed
+    fl::distributeModuleGrads(detr, reducer);
+  }
 
   ////////////////
   // Training loop
@@ -446,7 +448,7 @@ int main(int argc, char** argv) {
       accumLoss.backward();
       timers["backward"].stop();
 
-      if (FLAGS_distrbuted_enable) {
+      if (FLAGS_distributed_enable) {
         reducer->finalize();
       }
 
