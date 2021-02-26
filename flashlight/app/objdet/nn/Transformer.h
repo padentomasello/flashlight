@@ -205,6 +205,13 @@ class Transformer : public Container {
       int32_t mlpDim,
       float pDropout);
 
+  /*
+   * We expect src to be [ W X H X C X B ] 
+   * mask to be [ W X H X 1 X B ] 
+   * query embed [ C X N ] (where N is number of query vectors) 
+   * and posEmbed to be [ W X H X C X B ]
+   * where C is modelDim, B is Batch size, and W and H are width and height of image
+   */
   std::vector<Variable>
   forward(Variable src, Variable mask, Variable queryEmbed, Variable posEmbed);
 
