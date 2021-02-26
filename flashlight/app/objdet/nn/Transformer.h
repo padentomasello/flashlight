@@ -57,8 +57,9 @@ fl::Variable transformerMultiheadAttention(
 }
 
 std::shared_ptr<Linear> makeTransformerLinear(int inDim, int outDim) {
-  auto weights = transformerInitLinear(inDim, outDim);
-  auto bias = fl::param(af::constant(0, outDim));
+  float std = std::sqrt(1.0 / float(inDim));
+  auto weights =  fl::uniform(outDim, inDim, -std, std);
+  auto bias = fl::uniform({ outDim }, -std, std, f32, true);
   return std::make_shared<Linear>(weights, bias);
 }
 

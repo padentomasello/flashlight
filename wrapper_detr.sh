@@ -24,7 +24,7 @@ mkdir -p $BUILD_DIR/rndv/
 mkdir -p $EVAL_DIR
 $BUILD_DIR/flashlight/build/Detr train -train_lr 0.0001 --train_epochs 500 --data_batch_size 2 \
 --eval_dir $EVAL_DIR \
---model_pytorch_init /checkpoint/padentomasello/models/detr/serialization-update/initialization \
+#--model_pytorch_init /checkpoint/padentomasello/models/detr/serialization-update/initialization \
 --eval_script $BUILD_DIR/flashlight/flashlight/app/objdet/scripts/eval_coco.py \
 --eval_set_env "LD_LIBRARY_PATH=$BUILD_DIR/lib/:$LD_LIBRARY_PATH" \
 --exp_rundir $RUN_DIR \
