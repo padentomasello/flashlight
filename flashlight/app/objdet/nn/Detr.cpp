@@ -1,12 +1,14 @@
 #include "flashlight/app/objdet/nn/Detr.h"
 
 namespace {
-std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
+  
+std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
   float std = std::sqrt(1.0 / float(inDim));
   auto weights =  fl::uniform(outDim, inDim, -std, std);
   auto bias = fl::uniform({ outDim }, -std, std, f32, true);
-  return std::make_shared<Linear>(weights, bias);
+  return std::make_shared<fl::Linear>(weights, bias);
 }
+
 }
 
 namespace fl {
@@ -22,10 +24,10 @@ MLP::MLP(const int32_t inputDim,
   add(Linear(inputDim, hiddenDim));
   for (int i = 1; i < numLayers - 1; i++) {
     add(ReLU());
-    add(makeTransformerLinear(hiddenDim, hiddenDim));
+    add(makeLinear(hiddenDim, hiddenDim));
   }
   add(ReLU());
-  add(Linear(hiddenDim, outputDim));
+  add(makeLinear(hiddenDim, outputDim));
 }
 
 Detr::Detr() = default;
@@ -41,7 +43,7 @@ Detr::Detr(
         numClasses_(numClasses),
         numQueries_(numQueries),
         auxLoss_(auxLoss),
-        classEmbed_(makeTransformerLinear(hiddenDim, numClasses + 1)),
+        classEmbed_(makeLinear(hiddenDim, numClasses + 1)),
         bboxEmbed_(std::make_shared<MLP>(hiddenDim, hiddenDim, 4, 3)),
         queryEmbed_(std::make_shared<Embedding>(hiddenDim, numQueries)),
         inputProj_(std::make_shared<Conv2D>(2048, hiddenDim, 1, 1)),
