@@ -44,40 +44,37 @@ DEFINE_string(
     "/private/home/padentomasello/data/coco_new/",
     "Directory of imagenet data");
 DEFINE_double(train_lr, 0.0001f, "Learning rate");
-DEFINE_double(momentum, 0.9f, "Momentum");
 DEFINE_uint64(metric_iters, 5, "Print metric every");
 
-DEFINE_double(wd, 1e-4f, "Weight decay");
-DEFINE_uint64(epochs, 300, "Epochs");
-DEFINE_uint64(eval_iters, 1, "Epochs");
+DEFINE_double(train_wd, 1e-4f, "Weight decay");
+DEFINE_uint64(train_epochs, 300, "train_epochs");
+DEFINE_uint64(eval_iters, 1, "Run evaluation every n epochs");
 DEFINE_int64(
-    world_rank,
+    distributed_world_rank,
     0,
-    "rank of the process (Used if rndv_filepath is not empty)");
+    "rank of the process (Used if distributed_rndv_filepath is not empty)");
 DEFINE_int64(
-    world_size,
+    distributed_world_size,
     1,
-    "total number of the process (Used if rndv_filepath is not empty)");
+    "total number of the process (Used if distributed_rndv_filepath is not empty)");
 DEFINE_string(
-    rndv_filepath,
+    distributed_rndv_filepath,
     "",
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
-DEFINE_bool(enable_distributed, true, "Enable distributed training");
-DEFINE_uint64(batch_size, 2, "Total batch size across all gpus");
-DEFINE_string(checkpointpath, "/tmp/model", "Checkpointing prefix path");
-DEFINE_int64(checkpoint, -1, "Load from checkpoint");
+DEFINE_bool(distrbuted_enable, true, "Enable distributed training");
+DEFINE_uint64(data_batch_size, 2, "Total batch size across all gpus");
 
 DEFINE_string(
     eval_dir,
     "/private/home/padentomasello/data/coco/output/",
     "Directory to dump images to run evaluation script on");
 DEFINE_bool(
-    pretrained,
+    model_pretrained,
     true,
-    "Directory to dump images to run evaluation script on");
+    "Whether to load model_pretrained backbone");
 DEFINE_string(
-    pytorch_init,
+    model_pytorch_init,
     "",
     "Directory to dump images to run evaluation script on");
 DEFINE_string(
@@ -85,7 +82,7 @@ DEFINE_string(
     "",
     "Directory to dump images to run evaluation script on");
 DEFINE_string(
-    rundir,
+    exp_rundir,
     "",
     "Directory to dump images to run evaluation script on");
 DEFINE_string(
@@ -93,7 +90,7 @@ DEFINE_string(
     "/private/home/padentomasello/code/flashlight/flashlight/app/objdet/scripts/eval_coco.py",
     "Script to run evaluation on dumped tensors");
 DEFINE_string(
-    set_env,
+    eval_set_env,
     "LD_LIBRARY_PATH=/private/home/padentomasello/usr/lib/:$LD_LIBRARY_PATH ",
     "Set environment");
 DEFINE_int64(eval_break, -1, "Break eval after this many iters");
@@ -138,13 +135,13 @@ void evalLoop(
     af::saveArray("bboxes", bboxes, outputFile.c_str(), true);
     idx++;
   }
-  if (FLAGS_enable_distributed) {
+  if (FLAGS_distrbuted_enable) {
     barrier();
   }
   if (fl::getWorldRank() == 0) {
     std::stringstream ss;
     ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
-       << FLAGS_set_env << " "
+       << FLAGS_eval_set_env << " "
        << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
        << FLAGS_eval_script << " --dir " << FLAGS_eval_dir;
     int numAttempts = 10;
@@ -157,7 +154,7 @@ void evalLoop(
       sleep(5);
     }
   }
-  if (FLAGS_enable_distributed) {
+  if (FLAGS_distrbuted_enable) {
     barrier();
   }
   std::stringstream ss2;
@@ -191,7 +188,7 @@ int main(int argc, char** argv) {
   }
   if (runStatus == kTrainMode) {
     parseCmdLineFlagsWrapper(argc, argv);
-    runPath = FLAGS_rundir;
+    runPath = FLAGS_exp_rundir;
   } else if (runStatus == kContinueMode) {
     runPath = argv[2];
     while (fileExists(getRunFile("model_last.bin", runIdx, runPath))) {
@@ -221,7 +218,7 @@ int main(int argc, char** argv) {
   }
 
   if (runPath.empty()) {
-    LOG(FATAL) << "'runpath' specified by --rundir, --runname cannot be empty";
+    LOG(FATAL) << "'runpath' specified by --exp_rundir, --runname cannot be empty";
   }
   const std::string cmdLine = fl::lib::join(" ", argvs);
   std::unordered_map<std::string, std::string> config = {
@@ -249,7 +246,7 @@ int main(int argc, char** argv) {
   const float pDropout = 0.1;
   const bool auxLoss = false;
   std::shared_ptr<Resnet50Backbone> backbone;
-  if (FLAGS_pretrained) {
+  if (FLAGS_model_pretrained) {
     std::string modelPath =
         "/checkpoint/padentomasello/models/resnet50/pretrained";
     fl::load(modelPath, backbone);
@@ -264,14 +261,14 @@ int main(int argc, char** argv) {
 
   // Trained
   // untrained but initializaed
-  if (!FLAGS_pytorch_init.empty()) {
+  if (!FLAGS_model_pytorch_init.empty()) {
     std::cout << "Loading from pytorch intiialization path"
-              << FLAGS_pytorch_init << std::endl;
+              << FLAGS_model_pytorch_init << std::endl;
     // std::string modelPath =
     // "/checkpoint/padentomasello/models/detr/from_pytorch";  std::string
     // modelPath =
-    // "/checkpoint/padentomasello/models/detr/pytorch_initializaition";
-    fl::load(FLAGS_pytorch_init, detr);
+    // "/checkpoint/padentomasello/models/detr/model_pytorch_initializaition";
+    fl::load(FLAGS_model_pytorch_init, detr);
   }
   detr->train();
 
@@ -311,14 +308,14 @@ int main(int argc, char** argv) {
       beta1,
       beta2,
       epsilon,
-      FLAGS_wd);
+      FLAGS_train_wd);
   auto opt2 = std::make_shared<AdamOptimizer>(
       detr->backboneParams(),
       FLAGS_train_lr * 0.1,
       beta1,
       beta2,
       epsilon,
-      FLAGS_wd);
+      FLAGS_train_wd);
   auto lrScheduler = [&opt, &opt2](int epoch) {
     // Adjust learning rate every 30 epoch after 30
     const float newLr = FLAGS_train_lr * pow(0.1, epoch / 100);
@@ -331,9 +328,9 @@ int main(int argc, char** argv) {
   // Setup distributed training
   ////////////////////////
   std::shared_ptr<fl::Reducer> reducer = nullptr;
-  if (FLAGS_enable_distributed) {
+  if (FLAGS_distrbuted_enable) {
     fl::ext::initDistributed(
-        FLAGS_world_rank, FLAGS_world_size, 8, FLAGS_rndv_filepath);
+        FLAGS_distributed_world_rank, FLAGS_distributed_world_size, 8, FLAGS_distributed_rndv_filepath);
 
     reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
     // synchronize parameters of the model so that the parameters in each
@@ -351,26 +348,26 @@ int main(int argc, char** argv) {
   /////////////////////////
   // Create Datasets
   /////////////////////////
-  const int64_t batch_size_per_gpu = FLAGS_batch_size;
+  const int64_t data_batch_size_per_gpu = FLAGS_data_batch_size;
   const int64_t prefetch_threads = 10;
-  const int64_t prefetch_size = FLAGS_batch_size;
+  const int64_t prefetch_size = FLAGS_data_batch_size;
   std::string coco_dir = FLAGS_data_dir;
   auto train_ds = std::make_shared<CocoDataset>(
       coco_dir + "train.lst",
       worldRank,
       worldSize,
-      batch_size_per_gpu,
+      data_batch_size_per_gpu,
       prefetch_threads,
-      batch_size_per_gpu,
+      data_batch_size_per_gpu,
       false);
 
   auto val_ds = std::make_shared<CocoDataset>(
       coco_dir + "val.lst",
       worldRank,
       worldSize,
-      batch_size_per_gpu,
+      data_batch_size_per_gpu,
       prefetch_threads,
-      batch_size_per_gpu,
+      data_batch_size_per_gpu,
       true);
 
   // Override any initialization if continuing
@@ -393,7 +390,7 @@ int main(int argc, char** argv) {
   ////////////////
   // Training loop
   //////////////
-  for (int epoch = startEpoch; epoch < FLAGS_epochs; epoch++) {
+  for (int epoch = startEpoch; epoch < FLAGS_train_epochs; epoch++) {
     int idx = 0;
     std::map<std::string, AverageValueMeter> meters;
     std::map<std::string, TimeMeter> timers;
@@ -448,7 +445,7 @@ int main(int argc, char** argv) {
       accumLoss.backward();
       timers["backward"].stop();
 
-      if (FLAGS_enable_distributed) {
+      if (FLAGS_distrbuted_enable) {
         reducer->finalize();
       }
 
@@ -465,7 +462,7 @@ int main(int argc, char** argv) {
       if (++idx % FLAGS_metric_iters == 0) {
         double total_time = timers["total"].value();
         double sample_per_second =
-            (idx * FLAGS_batch_size * worldSize) / total_time;
+            (idx * FLAGS_data_batch_size * worldSize) / total_time;
         double forward_time = timers["forward"].value();
         double backward_time = timers["backward"].value();
         double criterion_time = timers["criterion"].value();
