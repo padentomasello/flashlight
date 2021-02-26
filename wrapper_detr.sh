@@ -22,13 +22,12 @@ RUN_DIR=/checkpoint/padentomasello/models/$SLURM_JOB_ID/
 mkdir -p $RUN_DIR
 mkdir -p $BUILD_DIR/rndv/
 mkdir -p $EVAL_DIR
-$BUILD_DIR/flashlight/build/Detr train -lr 0.0001 --epochs 500 --batch_size 2 \
+$BUILD_DIR/flashlight/build/Detr train -train_lr 0.0001 --train_epochs 500 --data_batch_size 2 \
 --eval_dir $EVAL_DIR \
---tryfromenv=eval_iters,data_dir,metric_iters,pretrained,print_params  \
---pytorch_init /checkpoint/padentomasello/models/detr/serialization-update/initialization \
+--model_pytorch_init /checkpoint/padentomasello/models/detr/serialization-update/initialization \
 --eval_script $BUILD_DIR/flashlight/flashlight/app/objdet/scripts/eval_coco.py \
---set_env "LD_LIBRARY_PATH=$BUILD_DIR/lib/:$LD_LIBRARY_PATH" \
---rundir $RUN_DIR \
+--eval_set_env "LD_LIBRARY_PATH=$BUILD_DIR/lib/:$LD_LIBRARY_PATH" \
+--exp_rundir $RUN_DIR \
 2>&1 # Ugh why does FL log send to std::err? 
 
 
