@@ -441,12 +441,14 @@ int main(int argc, char** argv) {
       meters["sum"].add(accumLoss.array());
       timers["criterion"].stop();
 
+
       /////////////////////////
       // Backward and update gradients
       //////////////////////////
       timers["backward"].resume();
       accumLoss.backward();
       timers["backward"].stop();
+
 
       if (FLAGS_distributed_enable) {
         reducer->finalize();
