@@ -1,7 +1,7 @@
 #pragma once
 
-#include "iostream"
 #include <cassert>
+#include "iostream"
 
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/fl/nn/nn.h"
@@ -126,8 +126,7 @@ class TransformerDecoderLayer : public Container {
       int32_t nHeads,
       float pDropout);
 
-protected:
-
+ protected:
   Variable mlp(const Variable& in);
 
   Variable withPosEmbed(const Variable& input, const Variable& pos);
@@ -206,11 +205,12 @@ class Transformer : public Container {
       float pDropout);
 
   /*
-   * We expect src to be [ W X H X C X B ] 
-   * mask to be [ W X H X 1 X B ] 
-   * query embed [ C X N ] (where N is number of query vectors) 
+   * We expect src to be [ W X H X C X B ]
+   * mask to be [ W X H X 1 X B ]
+   * query embed [ C X N ] (where N is number of query vectors)
    * and posEmbed to be [ W X H X C X B ]
-   * where C is modelDim, B is Batch size, and W and H are width and height of image
+   * where C is modelDim, B is Batch size, and W and H are width and height of
+   * image
    */
   std::vector<Variable>
   forward(Variable src, Variable mask, Variable queryEmbed, Variable posEmbed);

@@ -235,7 +235,6 @@ std::shared_ptr<Sequential> resnet50() {
   return model;
 }
 
-
 } // namespace image
 } // namespace ext
 } // namespace fl

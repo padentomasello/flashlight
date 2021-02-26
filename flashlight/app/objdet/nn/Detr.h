@@ -14,6 +14,7 @@ class MLP : public Sequential {
       const int32_t hiddenDim,
       const int32_t outputDim,
       const int32_t numLayers);
+
  private:
   FL_SAVE_LOAD_WITH_BASE(fl::Sequential)
 };

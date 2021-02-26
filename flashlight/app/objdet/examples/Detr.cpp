@@ -14,14 +14,13 @@
 #include "flashlight/app/objdet/criterion/SetCriterion.h"
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/app/objdet/dataset/Coco.h"
+#include "flashlight/app/objdet/models/Resnet50Backbone.h"
 #include "flashlight/app/objdet/nn/Detr.h"
 #include "flashlight/app/objdet/nn/Transformer.h"
-
 #include "flashlight/ext/common/DistributedUtils.h"
 #include "flashlight/ext/common/Runtime.h"
 #include "flashlight/ext/common/Serializer.h"
 #include "flashlight/ext/image/af/Transforms.h"
-#include "flashlight/app/objdet/models/Resnet50Backbone.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
 #include "flashlight/lib/common/String.h"
@@ -218,7 +217,8 @@ int main(int argc, char** argv) {
   }
 
   if (runPath.empty()) {
-    LOG(FATAL) << "'runpath' specified by --exp_rundir, --runname cannot be empty";
+    LOG(FATAL)
+        << "'runpath' specified by --exp_rundir, --runname cannot be empty";
   }
   const std::string cmdLine = fl::lib::join(" ", argvs);
   std::unordered_map<std::string, std::string> config = {
@@ -238,7 +238,10 @@ int main(int argc, char** argv) {
   std::shared_ptr<fl::Reducer> reducer = nullptr;
   if (FLAGS_distributed_enable) {
     fl::ext::initDistributed(
-        FLAGS_distributed_world_rank, FLAGS_distributed_world_size, 8, FLAGS_distributed_rndv_filepath);
+        FLAGS_distributed_world_rank,
+        FLAGS_distributed_world_size,
+        8,
+        FLAGS_distributed_rndv_filepath);
 
     reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
   }
@@ -336,7 +339,6 @@ int main(int argc, char** argv) {
     opt->setLr(newLr);
     opt2->setLr(newLr * 0.1);
   };
-
 
   /////////////////////////
   // Create Datasets
@@ -441,14 +443,12 @@ int main(int argc, char** argv) {
       meters["sum"].add(accumLoss.array());
       timers["criterion"].stop();
 
-
       /////////////////////////
       // Backward and update gradients
       //////////////////////////
       timers["backward"].resume();
       accumLoss.backward();
       timers["backward"].stop();
-
 
       if (FLAGS_distributed_enable) {
         reducer->finalize();

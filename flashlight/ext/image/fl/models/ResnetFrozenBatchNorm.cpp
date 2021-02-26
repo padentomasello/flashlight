@@ -15,14 +15,12 @@ namespace {
 
 Conv2D conv3x3(int inC, int outC, int stride, int groups) {
   const auto pad = PaddingMode::SAME;
-  return Conv2D(
-      inC, outC, 3, 3, stride, stride, pad, pad, 1, 1, false, groups);
+  return Conv2D(inC, outC, 3, 3, stride, stride, pad, pad, 1, 1, false, groups);
 }
 
 Conv2D conv1x1(int inC, int outC, int stride, int groups) {
   const auto pad = PaddingMode::SAME;
-  return Conv2D(
-      inC, outC, 1, 1, stride, stride, pad, pad, 1, 1, false, groups);
+  return Conv2D(inC, outC, 1, 1, stride, stride, pad, pad, 1, 1, false, groups);
 }
 
 } // namespace
@@ -52,7 +50,10 @@ ConvFrozenBnAct::ConvFrozenBnAct(
 
 ResNetBlockFrozenBn::ResNetBlockFrozenBn() = default;
 
-ResNetBlockFrozenBn::ResNetBlockFrozenBn(const int inC, const int outC, const int stride) {
+ResNetBlockFrozenBn::ResNetBlockFrozenBn(
+    const int inC,
+    const int outC,
+    const int stride) {
   add(std::make_shared<Conv2D>(conv3x3(inC, outC, stride, 1)));
   add(std::make_shared<FrozenBatchNorm>(FrozenBatchNorm(2, outC)));
   add(std::make_shared<ReLU>());

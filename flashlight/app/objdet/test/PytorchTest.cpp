@@ -282,8 +282,7 @@ TEST(Pytorch, val_dataset) {
       // resizeTransform(256),
       // centerCropTransform(224),
       normalizeImage(mean, std)};
-  auto valDataset =
-      CocoDataset(filepath + "val.lst", 0, 1, 1, 1, 1, true);
+  auto valDataset = CocoDataset(filepath + "val.lst", 0, 1, 1, 1, 1, true);
 
   af_print(valDataset.get(0).images(0, 0, 0));
 
@@ -320,8 +319,8 @@ TEST(Pytorch, set_crit) {
   std::unordered_map<std::string, float> lossWeightsBase = {
       {"loss_ce", 1.f}, {"loss_giou", 1.f}, {"loss_bbox", 1.f}};
 
-  auto criterion = SetCriterion(
-      predLogits.dims(0) - 1, matcher, lossWeightsBase, 0.1f);
+  auto criterion =
+      SetCriterion(predLogits.dims(0) - 1, matcher, lossWeightsBase, 0.1f);
 
   auto results = criterion.forward(predBoxes, predLogits, bboxes, labels);
   for (auto result : results) {
@@ -382,10 +381,10 @@ TEST(Pytorch, detr_backbone) {
     bn_ptr->setRunningVar(af::readArray((filename + "running").c_str(), i));
     i++;
   }
-   std::string modelPath =
-   "/checkpoint/padentomasello/models/resnet50/pretrained";
-   fl::save(modelPath, model);
-   fl::load(modelPath, model);
+  std::string modelPath =
+      "/checkpoint/padentomasello/models/resnet50/pretrained";
+  fl::save(modelPath, model);
+  fl::load(modelPath, model);
 
   auto output = model->forward(inputs)[0];
   // af_print(output.array());

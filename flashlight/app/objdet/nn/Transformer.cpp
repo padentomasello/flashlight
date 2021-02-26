@@ -8,12 +8,12 @@ namespace {
 
 std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
   float std = std::sqrt(1.0 / float(inDim));
-  auto weights =  fl::uniform(outDim, inDim, -std, std);
-  auto bias = fl::uniform({ outDim }, -std, std, f32, true);
+  auto weights = fl::uniform(outDim, inDim, -std, std);
+  auto bias = fl::uniform({outDim}, -std, std, f32, true);
   return std::make_shared<Linear>(weights, bias);
 }
 
-}
+} // namespace
 
 namespace fl {
 namespace app {
@@ -65,14 +65,14 @@ MultiheadAttention::MultiheadAttention(
     int32_t headDim,
     int32_t numHeads,
     float pDropout)
-      : pDropout_(pDropout), numHeads_(numHeads) {
-    wq_ = makeTransformerLinear(modelDim, headDim * numHeads);
-    wk_ = makeTransformerLinear(modelDim, headDim * numHeads);
-    wv_ = makeTransformerLinear(modelDim, headDim * numHeads);
-    wf_ = makeTransformerLinear(headDim * numHeads, modelDim);
-    add(wq_);
-    add(wk_);
-    add(wv_);
+    : pDropout_(pDropout), numHeads_(numHeads) {
+  wq_ = makeTransformerLinear(modelDim, headDim * numHeads);
+  wk_ = makeTransformerLinear(modelDim, headDim * numHeads);
+  wv_ = makeTransformerLinear(modelDim, headDim * numHeads);
+  wf_ = makeTransformerLinear(headDim * numHeads, modelDim);
+  add(wq_);
+  add(wk_);
+  add(wv_);
   add(wf_);
 }
 
@@ -113,46 +113,47 @@ std::vector<Variable> MultiheadAttention::forward(
   return results;
 };
 
-std::vector<Variable> MultiheadAttention::forward(const std::vector<Variable>& input) {
+std::vector<Variable> MultiheadAttention::forward(
+    const std::vector<Variable>& input) {
   assert(input.size() == 4);
   return this->forward(input[0], input[1], input[2], input[3]);
 }
 
 std::string MultiheadAttention::prettyString() const {
-    return "MultiheadAttention";
-  }
+  return "MultiheadAttention";
+}
 
 TransformerBaseLayer::TransformerBaseLayer() = default;
 
 TransformerBaseLayer::TransformerBaseLayer(
-      int32_t modelDim,
-      int32_t headDim,
-      int32_t mlpDim,
-      int32_t nHeads,
-      float pDropout)
-      : self_attn_(std::make_shared<MultiheadAttention>(
-            modelDim,
-            modelDim / nHeads,
-            nHeads,
-            pDropout)),
-        w1_(makeTransformerLinear(modelDim, mlpDim)),
-        w2_(makeTransformerLinear(mlpDim, modelDim)),
-        norm1_(std::make_shared<LayerNorm>(
-            std::vector<int>{0},
-            1e-5,
-            true,
-            modelDim)),
-        norm2_(std::make_shared<LayerNorm>(
-            std::vector<int>{0},
-            1e-5,
-            true,
-            modelDim)),
-        pDropout_(pDropout) {
-    add(self_attn_);
-    add(w1_);
-    add(w2_);
-    add(norm1_);
-    add(norm2_);
+    int32_t modelDim,
+    int32_t headDim,
+    int32_t mlpDim,
+    int32_t nHeads,
+    float pDropout)
+    : self_attn_(std::make_shared<MultiheadAttention>(
+          modelDim,
+          modelDim / nHeads,
+          nHeads,
+          pDropout)),
+      w1_(makeTransformerLinear(modelDim, mlpDim)),
+      w2_(makeTransformerLinear(mlpDim, modelDim)),
+      norm1_(std::make_shared<LayerNorm>(
+          std::vector<int>{0},
+          1e-5,
+          true,
+          modelDim)),
+      norm2_(std::make_shared<LayerNorm>(
+          std::vector<int>{0},
+          1e-5,
+          true,
+          modelDim)),
+      pDropout_(pDropout) {
+  add(self_attn_);
+  add(w1_);
+  add(w2_);
+  add(norm1_);
+  add(norm2_);
 };
 
 Variable TransformerBaseLayer::mlp(const Variable& in) {
@@ -160,7 +161,9 @@ Variable TransformerBaseLayer::mlp(const Variable& in) {
   return (*w2_)(dropout(relu((*w1_)(in)), pDropout));
 }
 
-Variable TransformerBaseLayer::withPosEmbed(const Variable& input, const Variable& pos) {
+Variable TransformerBaseLayer::withPosEmbed(
+    const Variable& input,
+    const Variable& pos) {
   if (pos.isempty()) {
     return input;
   }
@@ -183,9 +186,10 @@ TransformerEncoderLayer::TransformerEncoderLayer(
     int32_t mlpDim,
     int32_t nHeads,
     float pDropout)
-  : TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout){};
+    : TransformerBaseLayer(modelDim, headDim, mlpDim, nHeads, pDropout){};
 
-std::vector<Variable> TransformerEncoderLayer::forward(const std::vector<Variable>& input) {
+std::vector<Variable> TransformerEncoderLayer::forward(
+    const std::vector<Variable>& input) {
   auto src = input[0];
   auto mask = input[1];
   auto pos = input[2];
@@ -200,7 +204,7 @@ std::vector<Variable> TransformerEncoderLayer::forward(const std::vector<Variabl
   src = (*norm2_)(src);
 
   return {src, mask, pos};
-  }
+}
 
 std::string TransformerEncoderLayer::prettyString() const {
   return "TransformerEncoderLayer";
@@ -213,49 +217,51 @@ TransformerDecoderLayer::TransformerDecoderLayer(
     int32_t mlpDim,
     int32_t nHeads,
     float pDropout)
-  : self_attn_(std::make_shared<MultiheadAttention>(
-        modelDim,
-        modelDim / nHeads,
-        nHeads,
-        pDropout)),
-  encoder_attn_(std::make_shared<MultiheadAttention>(
-        modelDim,
-        modelDim / nHeads,
-        nHeads,
-        pDropout)),
-  w1_(makeTransformerLinear(modelDim, mlpDim)),
-  w2_(makeTransformerLinear(mlpDim, modelDim)),
-  norm1_(std::make_shared<LayerNorm>(
-        std::vector<int>{0},
-        1e-5,
-        true,
-        modelDim)),
-  norm2_(std::make_shared<LayerNorm>(
-        std::vector<int>{0},
-        1e-5,
-        true,
-        modelDim)),
-  norm3_(std::make_shared<LayerNorm>(
-        std::vector<int>{0},
-        1e-5,
-        true,
-        modelDim)),
-  pDropout_(pDropout) {
-    add(self_attn_);
-    add(encoder_attn_);
-    add(w1_);
-    add(w2_);
-    add(norm1_);
-    add(norm2_);
-    add(norm3_);
-  }
+    : self_attn_(std::make_shared<MultiheadAttention>(
+          modelDim,
+          modelDim / nHeads,
+          nHeads,
+          pDropout)),
+      encoder_attn_(std::make_shared<MultiheadAttention>(
+          modelDim,
+          modelDim / nHeads,
+          nHeads,
+          pDropout)),
+      w1_(makeTransformerLinear(modelDim, mlpDim)),
+      w2_(makeTransformerLinear(mlpDim, modelDim)),
+      norm1_(std::make_shared<LayerNorm>(
+          std::vector<int>{0},
+          1e-5,
+          true,
+          modelDim)),
+      norm2_(std::make_shared<LayerNorm>(
+          std::vector<int>{0},
+          1e-5,
+          true,
+          modelDim)),
+      norm3_(std::make_shared<LayerNorm>(
+          std::vector<int>{0},
+          1e-5,
+          true,
+          modelDim)),
+      pDropout_(pDropout) {
+  add(self_attn_);
+  add(encoder_attn_);
+  add(w1_);
+  add(w2_);
+  add(norm1_);
+  add(norm2_);
+  add(norm3_);
+}
 
 Variable TransformerDecoderLayer::mlp(const Variable& in) {
   float pDropout = train_ ? pDropout_ : 0.0;
   return (*w2_)(dropout(relu((*w1_)(in)), pDropout));
 }
 
-Variable TransformerDecoderLayer::withPosEmbed(const Variable& input, const Variable& pos) {
+Variable TransformerDecoderLayer::withPosEmbed(
+    const Variable& input,
+    const Variable& pos) {
   if (pos.isempty()) {
     return input;
   }
@@ -271,7 +277,8 @@ Variable TransformerDecoderLayer::selfAttention(
   return self_attn_->forward(q, k, input, keyPaddingMask)[0];
 }
 
-std::vector<Variable> TransformerDecoderLayer::forward(const std::vector<Variable>& input) {
+std::vector<Variable> TransformerDecoderLayer::forward(
+    const std::vector<Variable>& input) {
   // assert(input.size() == 5);
   auto tgt = input[0];
   auto memory = input[1];
@@ -290,7 +297,7 @@ std::vector<Variable> TransformerDecoderLayer::forward(const std::vector<Variabl
       this->withPosEmbed(memory, pos), // keys
       memory, // values
       memoryKeyPaddingMask // mask
-      })[0];
+  })[0];
   tgt = tgt + dropout(tgt2, pDropout);
   tgt = (*norm2_)(tgt);
   tgt2 = mlp(tgt);
@@ -318,7 +325,8 @@ TransformerDecoder::TransformerDecoder(
   add(LayerNorm(std::vector<int>{0}, 1e-5, true, modelDim));
 }
 
-std::vector<Variable> TransformerDecoder::forward(const std::vector<Variable>& input) {
+std::vector<Variable> TransformerDecoder::forward(
+    const std::vector<Variable>& input) {
   auto tgt = input[0];
   auto memory = input[1];
   auto pos = (input.size() > 2) ? input[2] : Variable();
@@ -346,14 +354,14 @@ TransformerEncoder::TransformerEncoder(
     int32_t mlpDim,
     int32_t nHeads,
     int32_t layers,
-    float pDropout)
-{
+    float pDropout) {
   for (int i = 0; i < layers; i++) {
     add(TransformerEncoderLayer(modelDim, headDim, mlpDim, nHeads, pDropout));
   }
 }
 
-std::vector<Variable> TransformerEncoder::forward(const std::vector<Variable>& input) {
+std::vector<Variable> TransformerEncoder::forward(
+    const std::vector<Variable>& input) {
   std::vector<Variable> output = input;
   auto mods = modules();
   for (int i = 0; i < mods.size(); i++) {
@@ -368,32 +376,35 @@ std::string TransformerEncoder::prettyString() const {
 
 Transformer::Transformer() = default;
 Transformer::Transformer(
-      int32_t modelDim,
-      int32_t numHeads,
-      int32_t numEncoderLayers,
-      int32_t numDecoderLayers,
-      int32_t mlpDim,
-      float pDropout)
-      : encoder_(std::make_shared<TransformerEncoder>(
-            modelDim,
-            modelDim / numHeads,
-            mlpDim,
-            numHeads,
-            numEncoderLayers,
-            pDropout)),
-        decoder_(std::make_shared<TransformerDecoder>(
-            modelDim,
-            modelDim / numHeads,
-            mlpDim,
-            numHeads,
-            numDecoderLayers,
-            pDropout)) {
-    add(encoder_);
-    add(decoder_);
-  };
+    int32_t modelDim,
+    int32_t numHeads,
+    int32_t numEncoderLayers,
+    int32_t numDecoderLayers,
+    int32_t mlpDim,
+    float pDropout)
+    : encoder_(std::make_shared<TransformerEncoder>(
+          modelDim,
+          modelDim / numHeads,
+          mlpDim,
+          numHeads,
+          numEncoderLayers,
+          pDropout)),
+      decoder_(std::make_shared<TransformerDecoder>(
+          modelDim,
+          modelDim / numHeads,
+          mlpDim,
+          numHeads,
+          numDecoderLayers,
+          pDropout)) {
+  add(encoder_);
+  add(decoder_);
+};
 
-std::vector<Variable>
-Transformer::forward(Variable src, Variable mask, Variable queryEmbed, Variable posEmbed) {
+std::vector<Variable> Transformer::forward(
+    Variable src,
+    Variable mask,
+    Variable queryEmbed,
+    Variable posEmbed) {
   assert(src.dims(2) == queryEmbed.dims(0));
 
   int B = src.dims(3);
@@ -421,8 +432,7 @@ Transformer::forward(Variable src, Variable mask, Variable queryEmbed, Variable 
   // auto tgt = queryEmbed;
 
   auto memory = encoder_->forward({src, mask, posEmbed});
-  auto hs =
-    decoder_->forward({tgt, memory[0], posEmbed, queryEmbed, mask})[0];
+  auto hs = decoder_->forward({tgt, memory[0], posEmbed, queryEmbed, mask})[0];
 
   auto reordered = reorder(hs, 0, 2, 1);
   return {reordered};

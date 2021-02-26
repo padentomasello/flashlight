@@ -13,12 +13,12 @@
 namespace fl {
 namespace ext {
 namespace image {
- 
-// Note these are identical to those in Resnet.h. There are a number of ways to 
-// refactor and consolidate including passing norm factory functions to the 
+
+// Note these are identical to those in Resnet.h. There are a number of ways to
+// refactor and consolidate including passing norm factory functions to the
 // constructor or templating the class. However, for the sake of keeping
 // the default Resnet implementation dead simple, we are recreating a lot
-// of functionality here. 
+// of functionality here.
 
 class ConvFrozenBnAct : public fl::Sequential {
  public:
