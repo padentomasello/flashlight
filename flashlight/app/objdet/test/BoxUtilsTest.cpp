@@ -1,6 +1,6 @@
 #include <arrayfire.h>
 
-#include "vision/dataset/BoxUtils.h"
+#include "flashlight/app/objdet/dataset/BoxUtils.h"
 
 #include <gtest/gtest.h>
 

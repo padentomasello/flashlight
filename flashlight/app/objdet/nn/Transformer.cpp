@@ -90,8 +90,6 @@ std::vector<Variable> MultiheadAttention::forward(
   int32_t modelDim = queries.dims(0);
   int32_t headDim = modelDim / numHeads_;
 
-  // TODO Test for now
-  // assert(!keyPaddingMask.isempty());
   if (!keyPaddingMask.isempty()) {
     assert(keyPaddingMask.dims(0) == keys.dims(2));
     assert(keyPaddingMask.dims(1) == keys.dims(1));
@@ -279,7 +277,6 @@ Variable TransformerDecoderLayer::selfAttention(
 
 std::vector<Variable> TransformerDecoderLayer::forward(
     const std::vector<Variable>& input) {
-  // assert(input.size() == 5);
   auto tgt = input[0];
   auto memory = input[1];
   auto pos = (input.size() > 2) ? input[2] : Variable();
@@ -288,7 +285,6 @@ std::vector<Variable> TransformerDecoderLayer::forward(
 
   float pDropout = train_ ? pDropout_ : 0.0f;
 
-  // auto q = withPosEmbed(tgt, queryPos);
   auto tgt2 = this->selfAttention(tgt, queryPos);
   tgt = tgt + dropout(tgt2, pDropout);
   tgt = (*norm1_)(tgt);
@@ -418,8 +414,6 @@ std::vector<Variable> Transformer::forward(
 
   mask = flatten(mask, 0, 2);
 
-  // TODO Should we ever not pass positional encodings to each layer?
-  // https://github.com/fairinternal/detr/blob/master/models/transformer.py#L56
 
   // Tile object queries for each batch
   af::dim4 unsqueeze = {queryEmbed.dims(0), 1, queryEmbed.dims(1)};
@@ -429,7 +423,6 @@ std::vector<Variable> Transformer::forward(
   assert(queryEmbed.dims(0) == src.dims(0));
 
   auto tgt = fl::Variable(af::constant(0, queryEmbed.dims()), false);
-  // auto tgt = queryEmbed;
 
   auto memory = encoder_->forward({src, mask, posEmbed});
   auto hs = decoder_->forward({tgt, memory[0], posEmbed, queryEmbed, mask})[0];
@@ -439,7 +432,6 @@ std::vector<Variable> Transformer::forward(
 }
 
 std::vector<Variable> Transformer::forward(const std::vector<Variable>& input) {
-  // assert(input.size() > 1);
   assert(input.size() > 3);
   auto src = input[0];
   auto mask = (input.size() > 1) ? input[1] : Variable();

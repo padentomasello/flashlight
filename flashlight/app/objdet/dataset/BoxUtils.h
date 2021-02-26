@@ -22,6 +22,10 @@ fl::Variable flatten(const fl::Variable& x, int start, int stop);
 
 Variable generalizedBoxIou(const Variable& bboxes1, const Variable& bboxes2);
 
+std::tuple<fl::Variable, fl::Variable> boxIou(
+    const fl::Variable& bboxes1,
+    const fl::Variable& bboxes2);
+
 Variable l1Loss(const Variable& input, const Variable& target);
 
 } // namespace objdet

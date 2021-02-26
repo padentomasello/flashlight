@@ -32,8 +32,6 @@ std::vector<Variable> PositionalEmbeddingSine::forward(
   auto nonMask =
       af::moddims(input.array(), {inputDims[0], inputDims[1], inputDims[3], 1});
 
-  // auto nonMask = ~mask;
-  //
   auto expandDims = [](const af::array in) {
     auto dims = in.dims();
     assert(dims[3] == 1);
@@ -66,10 +64,6 @@ std::vector<Variable> PositionalEmbeddingSine::forward(
                  af::operator/) *
         scale_;
   }
-
-  // af_print(nonMask);
-  // af_print(xEmbed);
-  // af_print(yEmbed);
 
   auto dim = af::range(af::dim4(numPosFeats_), 0, f32);
   dim = af::pow(temperature_, ((2 * af::floor(dim / 2)) / numPosFeats_));

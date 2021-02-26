@@ -30,7 +30,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/criterion/CMakeLists.txt)
 # NN
 include(${CMAKE_CURRENT_LIST_DIR}/nn/CMakeLists.txt)
 
-# TODO padentomasello have a "trainers" folder
 add_executable(Detr ${CMAKE_CURRENT_LIST_DIR}/examples/Detr.cpp)
 target_link_libraries(Detr flashlight-app-obj-det)
 

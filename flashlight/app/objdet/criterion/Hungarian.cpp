@@ -8,7 +8,6 @@ namespace {
 
 std::pair<af::array, af::array> hungarian(af::array& cost) {
   cost = cost.T();
-  // af_print(cost);
   const int M = cost.dims(0);
   const int N = cost.dims(1);
   std::vector<float> costHost(cost.elements());
@@ -37,19 +36,17 @@ std::pair<af::array, af::array> HungarianMatcher::matchBatch(
     const Variable& predLogits,
     const Variable& targetBoxes,
     const Variable& targetClasses) const {
-  // TODO Kind of a hack...
+
+  // Kind of a hack...
   if (targetClasses.isempty()) {
     return {af::array(0, 1), af::array(0, 1)};
   }
 
   // Create an M X N cost matrix where M is the number of targets and N is the
   // number of preds
-
   // Class cost
   auto outProbs = softmax(predLogits, 0);
   auto costClass = transpose((0 - outProbs(targetClasses.array(), af::span)));
-  // auto costClass = (1 - outProbs(targetClasses.array(), af::span));
-  //
 
   // Generalized IOU loss
   auto costGiou =

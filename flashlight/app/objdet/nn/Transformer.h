@@ -6,8 +6,6 @@
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/fl/nn/nn.h"
 
-// TODO check layer norm dimensions
-
 namespace fl {
 namespace app {
 namespace objdet {
