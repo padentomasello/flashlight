@@ -1,4 +1,4 @@
-#include "SetCriterion.h"
+#include "flashlight/app/objdet/criterion/SetCriterion.h"
 
 #include <assert.h>
 #include <algorithm>

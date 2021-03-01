@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "Hungarian.h"
+#include "flashlight/app/objdet/criterion/Hungarian.h"
 
 namespace fl {
 namespace app {

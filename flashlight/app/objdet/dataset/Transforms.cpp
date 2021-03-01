@@ -1,9 +1,11 @@
 #include "flashlight/app/objdet/dataset/Transforms.h"
+
+#include <assert.h>
+
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/app/objdet/dataset/TransformAllDataset.h"
 #include "flashlight/ext/image/af/Transforms.h"
 
-#include <assert.h>
 
 namespace {
 

@@ -1,4 +1,10 @@
 #include "flashlight/app/objdet/dataset/Coco.h"
+
+#include <arrayfire.h>
+#include <assert.h>
+#include <algorithm>
+#include <map>
+
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 #include "flashlight/app/objdet/dataset/Transforms.h"
 #include "flashlight/ext/image/af/Jpeg.h"
@@ -6,11 +12,6 @@
 #include "flashlight/ext/image/fl/dataset/DistributedDataset.h"
 #include "flashlight/ext/image/fl/dataset/LoaderDataset.h"
 
-#include <arrayfire.h>
-
-#include <assert.h>
-#include <algorithm>
-#include <map>
 
 namespace {
 

@@ -1,4 +1,5 @@
-#include "Hungarian.h"
+#include "flashlight/app/objdet/criterion/Hungarian.h"
+
 #include "flashlight/app/objdet/criterion/HungarianLib.h"
 #include "flashlight/app/objdet/dataset/BoxUtils.h"
 
