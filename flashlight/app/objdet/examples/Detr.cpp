@@ -164,6 +164,7 @@ void evalLoop(
 };
 
 int main(int argc, char** argv) {
+  fl::init();
   ///////////////////////////
   // Setup train / continue modes
   ///////////////////////////
