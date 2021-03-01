@@ -82,11 +82,6 @@ def main(directory):
 
     args = Args()
 
-    # dataset_val = build_coco(image_set='val', args=args)
-    # dataset_val = build_coco(image_set='val', args=args)
-    # base_ds = get_coco_api_from_dataset(dataset_val)
-    # coco_evaluator = CocoEvaluator(base_ds, ('bbox',))
-
     from pycocotools.cocoeval import COCOeval
     from pycocotools.coco import COCO
     dataDir='/datasets01/COCO/022719/'
@@ -127,32 +122,13 @@ def main(directory):
 
         all_results.extend(results)
         all_image_ids.extend(imageIds)
-        # print(imageIds)
 
     cocoDt = coco.loadRes(all_results)
     cocoEval = COCOeval(coco, cocoDt, 'bbox')
-#cocoEval.params.imgIds  = [imageId]
     cocoEval.params.imgIds  = all_image_ids
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
-        # res = { id : output for id, output in zip(imageIds, results) };
-        # results = prepare_for_coco_detection(res)
-
-    # print(len(coco_evaluator.img_ids))
-    # print(len(coco_evaluator.eval_imgs))
-    # coco_evaluator.synchronize_between_processes()
-    # print(len(coco_evaluator.img_ids))
-    # print(len(coco_evaluator.eval_imgs))
-    # # coco_evaluator.coco_eval['bbox'].eval_imgs = imageIds
-    # coco_evaluator.coco_eval['bbox'].params.imgIds = all_ids
-    # # coco_evaluator.eval_imgs['bbox'] = imageIds;
-    # print(len(coco_evaluator.img_ids))
-    # print(len(coco_evaluator.eval_imgs))
-    # # coco_evaluator.evalImgs = all_ids
-    # # coco_evaluator.evalImgs = all_ids
-    # coco_evaluator.accumulate()
-    # coco_evaluator.summarize()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
