@@ -1,4 +1,5 @@
-#include "PositionalEmbeddingSine.h"
+#include "flashlight/app/objdet/nn/PositionalEmbeddingSine.h"
+
 #include <cassert>
 
 namespace fl {
