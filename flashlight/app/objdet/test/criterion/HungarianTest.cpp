@@ -1,6 +1,6 @@
 #include <arrayfire.h>
 
-#include "vision/criterion/HungarianLib.h"
+#include "flashlight/app/objdet/criterion/HungarianLib.h"
 
 #include <gtest/gtest.h>
 

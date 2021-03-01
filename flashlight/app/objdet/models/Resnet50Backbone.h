@@ -49,7 +49,6 @@ class Resnet50Backbone : public Container {
  private:
   std::shared_ptr<Sequential> backbone_;
   std::shared_ptr<Sequential> tail_;
-  // FL_SAVE_LOAD_WITH_BASE(fl::Container, backbone_, tail_)
   FL_SAVE_LOAD_WITH_BASE(fl::Container)
 };
 

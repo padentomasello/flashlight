@@ -11,7 +11,6 @@ namespace ext {
 using fl::lib::format;
 using fl::lib::pathsConcat;
 
-// TODO move out of ASR
 std::string
 getRunFile(const std::string& name, int runidx, const std::string& runpath) {
   auto fname = format("%03d_%s", runidx, name.c_str());

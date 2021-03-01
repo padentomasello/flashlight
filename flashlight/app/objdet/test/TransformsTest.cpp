@@ -27,12 +27,13 @@ TEST(Crop, CropBasic) {
   std::vector<af::array> in = {af::constant(1.0, {256, 256, 10}),
                                af::array(),
                                af::array(),
+                               af::array(),
                                af::array({4, 2}, bboxesVector.data()),
                                af::constant(0.0, {1, 2})};
 
   // Crop from x, y (10, 10), with target heigh and width to be ten
   std::vector<af::array> out = fl::app::objdet::crop(in, 10, 5, 20, 25);
-  auto outBoxes = out[3];
+  auto outBoxes = out[4];
   std::vector<float> expVector = {
       0,
       5,
@@ -70,13 +71,14 @@ TEST(Crop, CropClip) {
       af::constant(1.0, {256, 256, 10}),
       af::array(),
       af::array(),
+      af::array(),
       af::array({numElementsPerBoxes, numBoxes}, bboxesVector.data()),
       af::iota({1, 3})};
 
   // Crop from x, y (10, 10), with target heigh and width to be ten
   std::vector<af::array> out = fl::app::objdet::crop(in, 5, 5, 100, 100);
-  auto outBoxes = out[3];
-  auto outClasses = out[4];
+  auto outBoxes = out[4];
+  auto outClasses = out[5];
   std::vector<float> expVector = {
       0,
       0,

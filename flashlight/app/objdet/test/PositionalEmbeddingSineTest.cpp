@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 using namespace fl;
-using namespace fl::app::object_detection;
+using namespace fl::app::objdet;
 
-TEST(PositionalEmbeddingSine, Test1) {
+TEST(PositionalEmbeddingSine, PytorchComparision) {
   int hiddenDim = 8;
   int H = 6;
   int W = 6;
@@ -17,9 +17,7 @@ TEST(PositionalEmbeddingSine, Test1) {
 
   PositionalEmbeddingSine pos(hiddenDim / 2, 10000.0f, false, 0.0f);
 
-  auto result = pos.forward(input);
-  std::cout << result.dims() << std::endl;
-  std::cout << result(0, 5, 3, 0).scalar<float>() << std::endl;
-  std::cout << result(0, 0, 0, 0).scalar<float>() << std::endl;
-  af_print(result.array());
+  auto result = pos.forward({ input})[0];
+  EXPECT_LE(result(0, 5, 3, 0).array().scalar<float>() - 0.9992f, 1e-5);
+  EXPECT_LE(result(0, 0, 0, 0).array().scalar<float>() - 0.841471f, 1e-5);
 }

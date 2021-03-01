@@ -1,10 +1,10 @@
-#include "app/object_detection/nn/Transformer.h"
-#include "app/object_detection/nn/PositionalEmbeddingSine.h"
+#include "flashlight/app/objdet/nn/Transformer.h"
+#include "flashlight/app/objdet/nn/PositionalEmbeddingSine.h"
 
 #include <gtest/gtest.h>
 
 using namespace fl;
-using namespace fl::app::object_detection;
+using namespace fl::app::objdet;
 
 TEST(Tranformer, BasicAttention) {
   int B = 1;
@@ -203,7 +203,7 @@ TEST(Tranformer, Size) {
   int numEncoderDecoder = 2;
   int mlpDim = 32;
   int numHeads = 8;
-  fl::app::object_detection::Transformer tr(
+  fl::app::objdet::Transformer tr(
       C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
 
   std::vector<Variable> inputs = {
@@ -234,7 +234,7 @@ TEST(Tranformer, Masked) {
   int mlpDim = 32;
   int numHeads = 8;
   int hiddenDim = 8;
-  fl::app::object_detection::Transformer tr(
+  fl::app::objdet::Transformer tr(
       C, numHeads, numEncoderDecoder, numEncoderDecoder, mlpDim, dropout);
 
   PositionalEmbeddingSine pos(C / 2, 10000.0f, false, 0.0f);
@@ -245,8 +245,8 @@ TEST(Tranformer, Masked) {
   auto maskArray = af::constant(0, {W, H, 1, B});
   maskArray(af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) =
       nonMask;
-  auto mask = Variable(maskArray, false);
-  auto nonMaskPos = pos.forward(Variable(nonMask, false));
+  auto mask = fl::Variable(maskArray, false);
+  auto nonMaskPos = pos.forward({ Variable(nonMask, false) } )[0];
 
   std::vector<Variable> nonMaskInput = {
       Variable(af::randu(maskW, maskH, C, B), false), // input Projection
@@ -254,14 +254,13 @@ TEST(Tranformer, Masked) {
       Variable(af::randu(af::dim4(C, bbox_queries)), false), // query_embed
       nonMaskPos};
   auto nonMaskOutput = tr(nonMaskInput)[0];
-  std::cout << "Here" << std::endl;
 
   auto nonMaskedSrc = af::randu(W, H, C, B);
   nonMaskedSrc(
       af::seq(0, maskW - 1), af::seq(0, maskH - 1), af::span, af::span) =
       nonMaskInput[0].array();
 
-  auto maskPos = pos.forward(mask);
+  auto maskPos = pos.forward({ mask })[0];
 
   std::vector<Variable> maskInput = {
       Variable(nonMaskedSrc, false), // input Projection
@@ -269,12 +268,4 @@ TEST(Tranformer, Masked) {
       nonMaskInput[2], // query_embed
       maskPos};
   auto maskOutput = tr(maskInput)[0];
-  af_print(nonMaskPos.array());
-  af_print(maskPos.array());
-  af_print(nonMaskOutput.array());
-  af_print(maskOutput.array());
-  // ASSERT_EQ(output.dims(0), C) << "Transformer should return model dim as
-  // first dimension";  ASSERT_EQ(output.dims(1), bbox_queries) << "Transformer
-  // did not return the correct number of labels";  ASSERT_EQ(output.dims(2), B)
-  // << "Transformer did not return the correct number of batches";
 }
