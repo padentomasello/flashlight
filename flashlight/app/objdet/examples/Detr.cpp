@@ -159,12 +159,14 @@ void evalLoop(
   std::stringstream ss2;
   ss2 << "rm -rf " << FLAGS_eval_dir << fl::getWorldRank() << "/detection*";
   std::cout << "Removing tmp eval files Command: " << ss2.str() << std::endl;
-  system(ss2.str().c_str());
+  //system(ss2.str().c_str());
   model->train();
 };
 
 int main(int argc, char** argv) {
   fl::init();
+  af::info();
+
   ///////////////////////////
   // Setup train / continue modes
   ///////////////////////////
@@ -232,6 +234,14 @@ int main(int argc, char** argv) {
       {kTimestamp, getCurrentDate() + ", " + getCurrentDate()},
       {kRunIdx, std::to_string(runIdx)},
       {kRunPath, runPath}};
+
+  std::stringstream ss;
+    ss << "PYTHONPATH=/private/home/padentomasello/code/detection-transformer/ "
+       << FLAGS_eval_set_env << " "
+       << "/private/home/padentomasello/.conda/envs/coco/bin/python3.8 "
+       << "-c 'import arrayfire as af'";
+    std::cout << ss.str() << std::endl;
+    system(ss.str().c_str());
 
   /////////////////////////
   // Setup distributed training

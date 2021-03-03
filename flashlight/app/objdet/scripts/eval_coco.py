@@ -4,19 +4,52 @@ import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
-from datasets import build_dataset, get_coco_api_from_dataset
-from datasets.coco import build as build_coco
-from datasets.coco_eval import CocoEvaluator
 import util.box_ops
 import glob
 import os
 
 def convert_to_xywh(boxes):
     xmin, ymin, xmax, ymax = boxes.unbind(1)
-    return torch.stack((xmin, ymin, xmax - xmin, ymax - ymin), dim=1)
+    result = torch.stack((xmin, ymin, xmax - xmin, ymax - ymin), dim=1)
+    return result
 
+def convert_to_xywh_array(boxes):
+    xmin, ymin, xmax, ymax = np.split(boxes, 4, axis=1)
+    result = np.concatenate([xmin, ymin, xmax - xmin, ymax - ymin], axis=1);
+    return result
 
-# from datasets.coco_eval import CocoEvaluator
+def softmax(x, axis=0):
+    """Compute softmax values for each sets of scores in x."""
+    max_value = np.max(x, axis=axis, keepdims=True);
+    e_x = np.exp(x - max_value)
+    s = np.sum(e_x, axis=axis, keepdims=True)
+    return e_x / s
+    # e_x = np.exp(x - np.max(x))
+    # return e_x / e_x.sum()
+
+def cxcywh_to_xyxy(x):
+    x_c, y_c, w, h = np.split(x, 4, 2)
+    b = [(x_c - 0.5 * w), (y_c - 0.5 * h),
+         (x_c + 0.5 * w), (y_c + 0.5 * h)]
+    return np.concatenate(b, axis=2)
+
+def postprocess_fn(out_logits, out_bbox, target_sizes):
+    assert len(out_logits) == len(target_sizes)
+    assert target_sizes.shape[1] == 2
+
+    prob = softmax(out_logits, 2)
+    labels = np.argmax(prob[..., :-1], axis=2);
+    scores = np.amax(prob[..., :-1], axis=2)
+    boxes = cxcywh_to_xyxy(out_bbox)
+    # import pdb; pdb.set_trace()
+
+    img_h, img_w = np.split(target_sizes, 2, axis=1)
+
+    scale_fct = np.concatenate([img_w, img_h, img_w, img_h], axis=1);
+    boxes = boxes * scale_fct[:, None, :]
+    results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
+    return results;
+
 
 class PostProcess(nn.Module):
     """ This module converts the model's output into the format expected by the coco api"""
@@ -49,6 +82,30 @@ class PostProcess(nn.Module):
         return results
 
 
+def prepare_for_coco_detection2(predictions):
+        coco_results = []
+        for original_id, prediction in predictions.items():
+            if len(prediction) == 0:
+                continue
+
+            boxes = prediction["boxes"]
+            boxes = convert_to_xywh_array(boxes).tolist()
+            scores = prediction["scores"].tolist()
+            labels = prediction["labels"].tolist()
+
+            coco_results.extend(
+                [
+                    {
+                        "image_id": original_id,
+                        "category_id": labels[k],
+                        "bbox": box,
+                        "score": scores[k],
+                    }
+                    for k, box in enumerate(boxes)
+                ]
+            )
+        return coco_results
+
 def prepare_for_coco_detection(predictions):
         coco_results = []
         for original_id, prediction in predictions.items():
@@ -79,6 +136,7 @@ class Args(object):
     masks = False
 
 def main(directory):
+    # return
 
     args = Args()
 
@@ -91,6 +149,7 @@ def main(directory):
 
 
     all_results = []
+    all_results2 = []
     all_image_ids = []
     # imageIds = [f'/datasets01/COCO/022719/train2017/{id:012d}.jpg' for id in imageIds]
 
@@ -104,26 +163,41 @@ def main(directory):
 
         imageSizes = af.read_array(f, key='imageSizes').to_ndarray()
         imageSizes = np.transpose(imageSizes, (1, 0))
-        imageSizes = torch.from_numpy(imageSizes)
+        # imageSizes = torch.from_numpy(imageSizes)
         imageIds = af.read_array(f, key='imageIds').to_ndarray()
         # imageIds = np.transpose(imageIds, (1, 0))
         scores = af.read_array(f, key='scores').to_ndarray()
         scores = np.transpose(scores, (2, 1, 0))
-        scores = torch.from_numpy(scores)
+        # scores = torch.from_numpy(scores)
         bboxes = af.read_array(f, key='bboxes').to_ndarray()
         bboxes = np.transpose(bboxes, (2, 1, 0))
-        bboxes = torch.from_numpy(bboxes)
-        results = postprocess.forward(scores, bboxes, imageSizes)
+        # bboxes = torch.from_numpy(bboxes)
+        results = postprocess.forward(torch.from_numpy(scores), torch.from_numpy(bboxes), torch.from_numpy(imageSizes))
+
+        results2 = postprocess_fn(scores, bboxes, imageSizes)
 
         res = { id : output for id, output in zip(imageIds, results) };
         results = prepare_for_coco_detection(res)
 
+        res2 = { id : output for id, output in zip(imageIds, results2) };
+        results2 = prepare_for_coco_detection2(res2)
+
+
         imageIds = [ id for id in imageIds ];
 
         all_results.extend(results)
+        all_results2.extend(results2)
         all_image_ids.extend(imageIds)
 
+    print('Torch')
     cocoDt = coco.loadRes(all_results)
+    cocoEval = COCOeval(coco, cocoDt, 'bbox')
+    cocoEval.params.imgIds  = all_image_ids
+    cocoEval.evaluate()
+    cocoEval.accumulate()
+    cocoEval.summarize()
+    print('Array only')
+    cocoDt = coco.loadRes(all_results2)
     cocoEval = COCOeval(coco, cocoDt, 'bbox')
     cocoEval.params.imgIds  = all_image_ids
     cocoEval.evaluate()
