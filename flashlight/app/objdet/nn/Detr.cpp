@@ -22,7 +22,7 @@ MLP::MLP(
     const int32_t hiddenDim,
     const int32_t outputDim,
     const int32_t numLayers) {
-  add(Linear(inputDim, hiddenDim));
+  add(makeLinear(inputDim, hiddenDim));
   for (int i = 1; i < numLayers - 1; i++) {
     add(ReLU());
     add(makeLinear(hiddenDim, hiddenDim));
