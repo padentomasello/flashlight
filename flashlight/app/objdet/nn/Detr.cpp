@@ -6,7 +6,7 @@ std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
   float std = std::sqrt(1.0 / float(inDim));
   auto weights = fl::uniform(outDim, inDim, -std, std);
   auto bias = fl::uniform({outDim}, -std, std, f32, true);
-  return std::make_shared<fl::Linear>(weights, bias);
+  return std::make_shared<fl::Linear>(inDim, outDim, true);
 }
 
 } // namespace

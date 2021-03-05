@@ -7,10 +7,12 @@ using namespace fl;
 namespace {
 
 std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
-  float std = std::sqrt(1.0 / float(inDim));
-  auto weights = fl::uniform(outDim, inDim, -std, std);
-  auto bias = fl::uniform({outDim}, -std, std, f32, true);
-  return std::make_shared<Linear>(weights, bias);
+  int fanIn = inDim;
+  auto w = Variable(
+      af::kaimingUniform(af::dim4(nOut_, nIn_), fanIn, af::dtype::f32), true);
+  double bound = std::sqrt(1.0 / fanIn);
+  auto b = uniform(af::dim4(nOut_), -bound, bound, af::dtype::f32, true);
+  return std::make_shared<Linear>(inDim, outDim, true);
 }
 
 } // namespace
