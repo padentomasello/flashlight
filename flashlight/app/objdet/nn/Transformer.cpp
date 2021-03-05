@@ -12,8 +12,9 @@ float calculate_gain(float negativeSlope) {
 
 std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
   int fanIn = inDim;
-  float gain = calculate_gain(std::sqrt(5.0f));
-  float std = gain / std::sqrt(fanIn);
+  int fanOut = outDim;
+  float gain = 1.0;
+  float std = gain * std::sqrt(2.0 / (fanIn + fanOut));
   float bound = std::sqrt(3.0) * std;
   auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
   bound = std::sqrt(1.0 / fanIn);
