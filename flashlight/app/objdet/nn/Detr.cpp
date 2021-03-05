@@ -2,11 +2,26 @@
 
 namespace {
 
-std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
+//std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
   //float std = std::sqrt(1.0 / float(inDim));
   //auto weights = fl::uniform(outDim, inDim, -std, std);
   //auto bias = fl::uniform({outDim}, -std, std, f32, true);
-  return std::make_shared<fl::Linear>(inDim, outDim, true);
+  //return std::make_shared<fl::Linear>(inDim, outDim, true);
+//}
+//
+float calculate_gain(float negativeSlope) {
+    return std::sqrt(2.0f / (1 + std::pow(negativeSlope, 2)));
+}
+
+std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
+  int fanIn = inDim;
+  float gain = calculate_gain(std::sqrt(5.0f));
+  float std = gain / std::sqrt(fanIn);
+  float bound = std::sqrt(3.0) * std;
+  auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
+  bound = std::sqrt(1.0 / fanIn);
+  auto b = fl::uniform(af::dim4(outDim), -bound, bound, af::dtype::f32, true);
+  return std::make_shared<fl::Linear>(w, b);
 }
 
 } // namespace

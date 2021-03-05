@@ -6,13 +6,19 @@ using namespace fl;
 
 namespace {
 
+float calculate_gain(float negativeSlope) {
+    return std::sqrt(2.0f / (1 + std::pow(negativeSlope, 2)));
+}
+
 std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
-  //int fanIn = inDim;
-  //auto w = Variable(
-      //af::kaimingUniform(af::dim4(nOut_, nIn_), fanIn, af::dtype::f32), true);
-  //double bound = std::sqrt(1.0 / fanIn);
-  //auto b = uniform(af::dim4(nOut_), -bound, bound, af::dtype::f32, true);
-  return std::make_shared<Linear>(inDim, outDim, true);
+  int fanIn = inDim;
+  float gain = calculate_gain(std::sqrt(5.0f));
+  float std = gain / std::sqrt(fanIn);
+  float bound = std::sqrt(3.0) * std;
+  auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
+  bound = std::sqrt(1.0 / fanIn);
+  auto b = fl::uniform(af::dim4(outDim), -bound, bound, af::dtype::f32, true);
+  return std::make_shared<fl::Linear>(w, b);
 }
 
 } // namespace
