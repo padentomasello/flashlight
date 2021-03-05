@@ -24,6 +24,17 @@ std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
   return std::make_shared<fl::Linear>(w, b);
 }
 
+std::shared_ptr<fl::Conv2D> makeConv2D(int inDim, int outDim, int wx, int wy) {
+  int fanIn = wx * wy * inDim;
+  float gain = calculate_gain(std::sqrt(5.0f));
+  float std = gain / std::sqrt(fanIn);
+  float bound = std::sqrt(3.0) * std;
+  auto w = fl::uniform({ wx, wy, inDim, outDim}, -bound, bound, f32, true);
+  bound = std::sqrt(1.0 / fanIn);
+  auto b = fl::uniform(af::dim4(1, 1, outDim, 1), -bound, bound, af::dtype::f32, true);
+  return std::make_shared<fl::Conv2D>(w, b, 1, 1);
+}
+
 } // namespace
 
 namespace fl {
@@ -62,7 +73,7 @@ Detr::Detr(
       classEmbed_(makeLinear(hiddenDim, numClasses + 1)),
       bboxEmbed_(std::make_shared<MLP>(hiddenDim, hiddenDim, 4, 3)),
       queryEmbed_(std::make_shared<Embedding>(hiddenDim, numQueries)),
-      inputProj_(std::make_shared<Conv2D>(2048, hiddenDim, 1, 1)),
+      inputProj_(makeConv2D(2048, hiddenDim, 1, 1)),
       posEmbed_(std::make_shared<PositionalEmbeddingSine>(
           hiddenDim / 2,
           10000,
