@@ -382,7 +382,7 @@ TEST(Pytorch, detr_backbone) {
     i++;
   }
   std::string modelPath =
-      "/checkpoint/padentomasello/models/resnet50/pretrained";
+      "/checkpoint/padentomasello/models/resnet50/pretrained2";
   fl::save(modelPath, model);
   fl::load(modelPath, model);
 
@@ -469,7 +469,7 @@ TEST(Pytorch, detr_initialization) {
     //if((i + 4) >= 258 && (i+ 4) <= 268) {
       //continue;
     //}
-    if((i + 4) <= 257) {
+    if((i + 4) <= 269) {
       continue;
     }
     auto array = af::readArray(filename.c_str(), i + 4);
@@ -499,7 +499,7 @@ TEST(Pytorch, detr_initialization) {
   // std::string modelPath =
   // "/checkpoint/padentomasello/models/detr/from_pytorch_trained";
   std::string modelPath =
-      "/checkpoint/padentomasello/models/detr/serialization-update/initialization_testing_fl_init_transformer";
+      "/checkpoint/padentomasello/models/detr/serialization-update/initialization_testing_pt_backbone";
   fl::save(modelPath, model);
   fl::load(modelPath, model);
 
