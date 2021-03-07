@@ -106,6 +106,18 @@ void parseCmdLineFlagsWrapper(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 }
 
+void getBns(
+    std::shared_ptr<fl::Module> module,
+    std::vector<std::shared_ptr<fl::Module>>& bns) {
+  if (dynamic_cast<fl::FrozenBatchNorm*>(module.get())) {
+    bns.push_back(module);
+  } else if (dynamic_cast<fl::Container*>(module.get())) {
+    for (auto mod : dynamic_cast<fl::Container*>(module.get())->modules()) {
+      getBns(mod, bns);
+    }
+  }
+};
+
 void evalLoop(
     std::shared_ptr<Detr> model,
     std::shared_ptr<CocoDataset> dataset) {
@@ -289,13 +301,47 @@ int main(int argc, char** argv) {
   // Trained
   // untrained but initializaed
   if (!FLAGS_model_pytorch_init.empty()) {
-    std::cout << "Loading from pytorch intiialization path"
-              << FLAGS_model_pytorch_init << std::endl;
+    //std::cout << "Loading from pytorch intiialization path"
+              //<< FLAGS_model_pytorch_init << std::endl;
+  std::string filename =
+      "/private/home/padentomasello/scratch/pytorch_testing/detr_initialization.array";
+
+    int paramSize = detr->params().size();
+    for (int i = 0; i < paramSize; i++) {
+      auto array = af::readArray(filename.c_str(), i + 4);
+      if (i == 264) {
+        array = af::moddims(array, {1, 1, 256, 1});
+      }
+      assert(detr->param(i).dims() == array.dims());
+      auto fl_mean = af::mean<float>(detr->param(i).array());
+      auto pt_mean = af::mean<float>(array);
+      auto fl_std = af::stdev<float>(detr->param(i).array());
+      auto pt_std = af::stdev<float>(array);
+      if(std::abs(fl_mean - pt_mean) > 1e-2 || std::abs(fl_std - pt_std) > 1e-2) {
+      std::cout << "i: " << i << " FL mean: " << fl_mean << " PT mean " << pt_mean  << std::endl;
+      std::cout << "i: " << i << " FL std: " << fl_std << " PT std " << pt_std << std::endl;
+      }
+      //assert(std::abs(fl_mean - pt_mean) < 1e-2);
+      //assert(std::abs(fl_std - pt_std) < 1e-2);
+      detr->setParams(param(array), i);
+    }
+
+    std::vector<std::shared_ptr<fl::Module>> bns;
+    getBns(detr, bns);
+
+    int i = 0;
+    for (auto bn : bns) {
+      auto bn_ptr = dynamic_cast<fl::FrozenBatchNorm*>(bn.get());
+      bn_ptr->setRunningMean(af::readArray((filename + "running").c_str(), i));
+      i++;
+      bn_ptr->setRunningVar(af::readArray((filename + "running").c_str(), i));
+      i++;
+    }
     // std::string modelPath =
     // "/checkpoint/padentomasello/models/detr/from_pytorch";  std::string
     // modelPath =
     // "/checkpoint/padentomasello/models/detr/model_pytorch_initializaition";
-    fl::load(FLAGS_model_pytorch_init, detr);
+    //fl::load(FLAGS_model_pytorch_init, detr);
   }
   detr->train();
 

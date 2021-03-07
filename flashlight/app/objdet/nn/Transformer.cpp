@@ -12,13 +12,24 @@ float calculate_gain(float negativeSlope) {
 
 std::shared_ptr<fl::Linear> makeTransformerLinear(int inDim, int outDim) {
   int fanIn = inDim;
-  int fanOut = outDim * 3;
+  int fanOut = outDim;
   float gain = 1.0;
   float std = gain * std::sqrt(2.0 / (fanIn + fanOut));
   float bound = std::sqrt(3.0) * std;
   auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
   bound = std::sqrt(1.0 / fanIn);
   auto b = fl::uniform(af::dim4(outDim), -bound, bound, af::dtype::f32, true);
+  return std::make_shared<fl::Linear>(w, b);
+}
+
+std::shared_ptr<fl::Linear> makeMultiheadedAttentionLinear(int inDim, int outDim, int fanOutMult=1) {
+  int fanIn = inDim;
+  int fanOut = outDim * fanOutMult;
+  float gain = 1.0;
+  float std = gain * std::sqrt(2.0 / (fanIn + fanOut));
+  float bound = std::sqrt(3.0) * std;
+  auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
+  auto b = fl::param(af::constant(0, af::dim4(outDim)));
   return std::make_shared<fl::Linear>(w, b);
 }
 
@@ -75,10 +86,10 @@ MultiheadAttention::MultiheadAttention(
     int32_t numHeads,
     float pDropout)
     : pDropout_(pDropout), numHeads_(numHeads) {
-  wq_ = makeTransformerLinear(modelDim, headDim * numHeads);
-  wk_ = makeTransformerLinear(modelDim, headDim * numHeads);
-  wv_ = makeTransformerLinear(modelDim, headDim * numHeads);
-  wf_ = makeTransformerLinear(headDim * numHeads, modelDim);
+  wq_ = makeMultiheadedAttentionLinear(modelDim, headDim * numHeads, 3);
+  wk_ = makeMultiheadedAttentionLinear(modelDim, headDim * numHeads, 3);
+  wv_ = makeMultiheadedAttentionLinear(modelDim, headDim * numHeads, 3);
+  wf_ = makeMultiheadedAttentionLinear(headDim * numHeads, modelDim);
   add(wq_);
   add(wk_);
   add(wv_);
