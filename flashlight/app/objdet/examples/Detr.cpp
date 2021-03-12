@@ -94,6 +94,32 @@ DEFINE_string(
     "Set environment");
 DEFINE_int64(eval_break, -1, "Break eval after this many iters");
 DEFINE_bool(eval_only, false, "Weather to just run eval");
+// MIXED PRECISION OPTIONS
+DEFINE_bool(
+    fl_amp_use_mixed_precision,
+    false,
+    "[train] Use mixed precision for training - scale loss and gradients up and down "
+    "by a scale factor that changes over time. If no fl optim mode is "
+    "specified with --fl_optim_mode when passing this flag, automatically "
+    "sets the optim mode to O1.");
+DEFINE_double(
+    fl_amp_scale_factor,
+    4096.,
+    "[train] Starting scale factor to use for loss scaling "
+    " with mixed precision training");
+DEFINE_uint64(
+    fl_amp_scale_factor_update_interval,
+    2000,
+    "[train] Update interval for adjusting loss scaling in mixed precision training");
+DEFINE_uint64(
+    fl_amp_max_scale_factor,
+    32000,
+    "[train] Maximum value for the loss scale factor in mixed precision training");
+DEFINE_string(
+    fl_optim_mode,
+    "",
+    "[train] Sets the flashlight optimization mode. "
+    "Optim modes can be O1, O2, or O3.");
 
 // Utility function that overrides flags file with command line arguments
 void parseCmdLineFlagsWrapper(int argc, char** argv) {
@@ -104,6 +130,11 @@ void parseCmdLineFlagsWrapper(int argc, char** argv) {
     gflags::ReadFromFlagsFile(FLAGS_flagsfile, argv[0], true);
   }
   gflags::ParseCommandLineFlags(&argc, &argv, false);
+}
+
+
+bool isBadArray(const af::array& arr) {
+  return af::anyTrue<bool>(af::isNaN(arr)) || af::anyTrue<bool>(af::isInf(arr));
 }
 
 void getBns(
@@ -229,6 +260,21 @@ int main(int argc, char** argv) {
     }
   } else {
     LOG(FATAL) << gflags::ProgramUsage();
+  }
+
+    // flashlight optim mode
+  auto flOptimLevel = FLAGS_fl_optim_mode.empty()
+      ? fl::OptimLevel::DEFAULT
+      : fl::OptimMode::toOptimLevel(FLAGS_fl_optim_mode);
+  fl::OptimMode::get().setOptimLevel(flOptimLevel);
+  if (FLAGS_fl_amp_use_mixed_precision) {
+    // Only set the optim mode to O1 if it was left empty
+    LOG(INFO) << "Mixed precision training enabled. Will perform loss scaling.";
+    if (FLAGS_fl_optim_mode.empty()) {
+      LOG(INFO) << "Mixed precision training enabled with no "
+                   "optim mode specified - setting optim mode to O1.";
+      fl::OptimMode::get().setOptimLevel(fl::OptimLevel::O1);
+    }
   }
 
   if (runPath.empty()) {
@@ -449,6 +495,22 @@ int main(int argc, char** argv) {
     fl::distributeModuleGrads(detr, reducer);
   }
 
+  if (FLAGS_fl_amp_use_mixed_precision) {
+    // Only set the optim mode to O1 if it was left empty
+    FL_LOG_MASTER(INFO)
+        << "Mixed precision training enabled. Will perform loss scaling.";
+    if (FLAGS_fl_optim_mode.empty()) {
+      // fl::OptimMode::get().setOptimLevel(fl::OptimLevel::O1);
+      fl::OptimMode::get().setOptimLevel(fl::OptimLevel::DEFAULT);
+    }
+  }
+  unsigned short scaleCounter = 1;
+  double scaleFactor =
+      FLAGS_fl_amp_use_mixed_precision ? FLAGS_fl_amp_scale_factor : 1.;
+  unsigned int kScaleFactorUpdateInterval =
+      FLAGS_fl_amp_scale_factor_update_interval;
+  unsigned int kMaxScaleFactor = FLAGS_fl_amp_max_scale_factor;
+
   ////////////////
   // Training loop
   //////////////
@@ -461,7 +523,11 @@ int main(int argc, char** argv) {
     lrScheduler(epoch);
     train_ds->resample();
     for (auto& sample : *train_ds) {
-      std::vector<Variable> input = {fl::Variable(sample.images, false),
+      bool retrySample = false;
+      do {
+        retrySample = false;
+        timers["forward"].resume();
+        std::vector<Variable> input = {fl::Variable(sample.images, false),
                                      fl::Variable(sample.masks, false)};
       auto output = detr->forward(input);
 
@@ -487,31 +553,74 @@ int main(int argc, char** argv) {
 
       timers["criterion"].resume();
 
-      auto loss =
+      auto losses =
           criterion.forward(output[1], output[0], targetBoxes, targetClasses);
 
-      auto accumLoss = fl::Variable(af::constant(0, 1), true);
-      for (auto losses : loss) {
-        fl::Variable scaled_loss = weightDict[losses.first] * losses.second;
-        meters[losses.first].add(losses.second.array());
-        meters[losses.first + "_weighted"].add(scaled_loss.array());
-        accumLoss = scaled_loss + accumLoss;
+      auto loss = fl::Variable(af::constant(0, 1), true);
+      for (auto l : losses) {
+        fl::Variable scaled_loss = weightDict[l.first] * l.second;
+        meters[l.first].add(l.second.array());
+        meters[l.first + "_weighted"].add(scaled_loss.array());
+        loss = scaled_loss + loss;
       }
-      meters["sum"].add(accumLoss.array());
+      meters["sum"].add(loss.array());
       timers["criterion"].stop();
 
       /////////////////////////
       // Backward and update gradients
       //////////////////////////
       timers["backward"].resume();
-      accumLoss.backward();
+      loss.backward();
       timers["backward"].stop();
+
+      if (FLAGS_fl_amp_use_mixed_precision) {
+          ++scaleCounter;
+          loss = loss * scaleFactor;
+      }
 
       if (FLAGS_distributed_enable) {
         reducer->finalize();
       }
 
       fl::clipGradNorm(detr->params(), 0.1);
+      if (FLAGS_fl_amp_use_mixed_precision) {
+        for (auto& p : detr->params()) {
+          // This line is needed because of frozen batchnorms
+          if(! p.isGradAvailable()) {
+            continue;
+          }
+          p.grad() = p.grad() / scaleFactor;
+          if (isBadArray(p.grad().array())) {
+            FL_LOG(INFO) << "Grad has NaN values in 3, in proc: "
+              << fl::getWorldRank();
+            if (scaleFactor >= fl::kAmpMinimumScaleFactorValue) {
+              scaleFactor = scaleFactor / 2.0f;
+              FL_LOG(INFO)
+                << "AMP: Scale factor decreased (grad). New value:\t"
+                << scaleFactor;
+              retrySample = true;
+            } else {
+              FL_LOG(FATAL)
+                << "Minimum loss scale reached: "
+                << fl::kAmpMinimumScaleFactorValue
+                << " with over/underflowing gradients. Lowering the "
+                << "learning rate, using gradient clipping, or "
+                << "increasing the batch size can help resolve "
+                << "loss explosion.";
+            }
+            scaleCounter = 1;
+            break;
+          }
+        }
+      }
+      if (retrySample) {
+        opt->zeroGrad();
+        opt2->zeroGrad();
+        continue;
+      }
+        //trainLossMeter.add(loss.array() / scaleFactor);
+      } while (retrySample);
+
 
       opt->step();
       opt2->step();

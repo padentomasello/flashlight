@@ -8,9 +8,9 @@ double calculate_gain(double negativeSlope) {
 
 std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
   int fanIn = inDim;
-  float gain = calculate_gain(std::sqrt(5.0));
-  float std = gain / std::sqrt(fanIn);
-  float bound = std::sqrt(3.0) * std;
+  double gain = calculate_gain(std::sqrt(5.0));
+  double std = gain / std::sqrt(fanIn);
+  double bound = std::sqrt(3.0) * std;
   auto w = fl::uniform(outDim, inDim, -bound, bound, f32, true);
   bound = 1.0 / std::sqrt(fanIn);
   auto b = fl::uniform(af::dim4(outDim), -bound, bound, af::dtype::f32, true);
@@ -19,11 +19,11 @@ std::shared_ptr<fl::Linear> makeLinear(int inDim, int outDim) {
 
 std::shared_ptr<fl::Conv2D> makeConv2D(int inDim, int outDim, int wx, int wy) {
   int fanIn = wx * wy * inDim;
-  float gain = calculate_gain(std::sqrt(5.0f));
-  float std = gain / std::sqrt(fanIn);
-  float bound = std::sqrt(3.0f) * std;
+  double gain = calculate_gain(std::sqrt(5.0));
+  double std = gain / std::sqrt(fanIn);
+  double bound = std::sqrt(3.0) * std;
   auto w = fl::uniform({ wx, wy, inDim, outDim}, -bound, bound, f32, true);
-  bound = 1.0f / std::sqrt(fanIn);
+  bound = 1.0 / std::sqrt(fanIn);
   auto b = fl::uniform(af::dim4(1, 1, outDim, 1), -bound, bound, af::dtype::f32, true);
   return std::make_shared<fl::Conv2D>(w, b, 1, 1);
 }
