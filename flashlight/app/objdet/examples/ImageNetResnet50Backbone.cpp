@@ -46,6 +46,8 @@ DEFINE_string(
     "Shared file path used for setting up rendezvous."
     "If empty, uses MPI to initialize.");
 DEFINE_uint64(data_batch_size, 256, "Total batch size across all gpus");
+DEFINE_uint64(data_prefetch_size, 256, "Total batch size across all gpus");
+DEFINE_uint64(data_prefetch_threads, 10, "Total batch size across all gpus");
 DEFINE_string(exp_checkpoint_path, "/tmp/model", "Checkpointing prefix path");
 DEFINE_int64(exp_checkpoint_epoch, -1, "Checkpoint epoch to load from");
 
@@ -146,8 +148,8 @@ int main(int argc, char** argv) {
                fl::ext::image::normalizeImage(mean, std)});
 
   const int64_t batchSizePerGpu = FLAGS_data_batch_size;
-  const int64_t prefetchThreads = 10;
-  const int64_t prefetchSize = FLAGS_data_batch_size;
+  const int64_t prefetchThreads = FLAGS_data_prefetch_threads;
+  const int64_t prefetchSize = FLAGS_data_prefetch_size;
   auto labelMap = getImagenetLabels(labelPath);
   auto trainDataset = fl::ext::image::DistributedDataset(
       imagenetDataset(trainList, labelMap, {trainTransforms}),
@@ -254,7 +256,7 @@ int main(int argc, char** argv) {
         fl::ext::syncMeter(top5Acc);
         fl::ext::syncMeter(top1Acc);
         double time = timeMeter.value();
-        double samplePerSecond = (idx * FLAGS_data_batch_size) / time;
+        double samplePerSecond = (idx * FLAGS_data_batch_size * fl::getWorldSize()) / time;
         FL_LOG_MASTER(INFO)
             << "Epoch " << epoch << std::setprecision(5) << " Batch: " << idx
             << " Samples per second " << samplePerSecond
