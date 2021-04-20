@@ -87,3 +87,8 @@ if (FL_BUILD_APP_OBJDET)
   set(INSTALLABLE_TARGETS ${INSTALLABLE_TARGETS} flashlight-app-objdet)
   setup_install_headers(${FL_APP_OBJDET_ROOT_DIR} ${FL_INSTALL_INC_DIR_HEADER_LOC}/app)
 endif ()
+
+set(FL_APP_VISION_ROOT_DIR ${FL_APPS_DIR}/vision)
+include(${FL_APP_VISION_ROOT_DIR}/CMakeLists.txt)
+set(INSTALLABLE_TARGETS ${INSTALLABLE_TARGETS} flashlight-app-vision)
+setup_install_headers(${FL_APP_VISION_ROOT_DIR} ${FL_INSTALL_INC_DIR_HEADER_LOC}/app)
