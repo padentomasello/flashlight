@@ -147,6 +147,9 @@ SetCriterion::LossDict SetCriterion::forward(
     auto predBoxes = predBoxesAux(af::span, af::span, af::span, af::seq(i, i));
     auto predLogits =
         predLogitsAux(af::span, af::span, af::span, af::seq(i, i));
+    losses[std::to_string(i)] = sum(predBoxes, { 0, 1, 2, 3});
+    continue;
+
 
     std::vector<af::array> targetBoxesArray(targetBoxes.size());
     std::vector<af::array> targetClassesArray(targetClasses.size());
@@ -179,6 +182,7 @@ SetCriterion::LossDict SetCriterion::forward(
     }
     numBoxes = numBoxesArray.scalar<int>();
     numBoxes = std::max(numBoxes / fl::getWorldSize(), 1);
+    
 
     auto labelLoss = lossLabels(
         predBoxes, predLogits, targetBoxes, targetClasses, indices, numBoxes);

@@ -110,6 +110,7 @@ void allReduce(af::array& arr, bool async /* = false */) {
   if (!isDistributedInit()) {
     throw std::runtime_error("distributed environment not initialized");
   }
+  std::cout << arr.dims() << std::endl;
   ncclDataType_t type = detail::getNcclTypeForArray(arr);
   DevicePtr arrPtr(arr);
   detail::allreduceCuda(
@@ -339,6 +340,14 @@ void allreduceCuda(
     // don't synchronize streams if not async and not contiguous - the AF CUDA
     // stream does everything
   }
+
+  int size = count;
+  int maxSize;
+  MPI_Allreduce(&size, &maxSize, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  if (size != maxSize) {
+    throw std::logic_error("size of all reduce input not same");
+  }
+
 
   NCCLCHECK(ncclAllReduce(
       ptr, ptr, count, ncclType, ncclSum, ncclContext.getComm(), syncStream));

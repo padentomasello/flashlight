@@ -31,9 +31,11 @@ std::pair<af::array, af::array> hungarian(af::array& cost) {
   std::vector<int> rowIdxs(M);
   std::vector<int> colIdxs(M);
   cost.host(costHost.data());
-  fl::lib::set::hungarian(costHost.data(), rowIdxs.data(), colIdxs.data(), M, N);
-  auto rowIdxsArray = af::array(M, rowIdxs.data());
-  auto colIdxsArray = af::array(M, colIdxs.data());
+  //fl::lib::set::hungarian(costHost.data(), rowIdxs.data(), colIdxs.data(), M, N);
+  //auto rowIdxsArray = af::array(M, rowIdxs.data());
+  //auto colIdxsArray = af::array(M, colIdxs.data());
+  auto rowIdxsArray = af::iota(M);
+  auto colIdxsArray = af::iota(M);
   return {rowIdxsArray, colIdxsArray};
 }
 } // namespace

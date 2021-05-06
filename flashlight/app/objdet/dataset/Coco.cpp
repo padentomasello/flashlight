@@ -158,20 +158,20 @@ CocoDataset::CocoDataset(
       });
 
   const int maxSize = 1333;
-  if (val) {
+  if (true) {
     ds =
         std::make_shared<TransformAllDataset>(ds, randomResize({800}, maxSize));
   } else {
-    std::vector<int> scales = {
-        480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
-    TransformAllFunction trainTransform =
-        compose({randomHorizontalFlip(0.5),
-                 randomSelect({randomResize(scales, maxSize),
-                               compose({randomResize({400, 500, 600}, -1),
-                                        randomSizeCrop(384, 600),
-                                        randomResize(scales, 1333)})})});
+    //std::vector<int> scales = {
+        //480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800};
+    //TransformAllFunction trainTransform =
+        //compose({randomHorizontalFlip(0.5),
+                 //randomSelect({randomResize(scales, maxSize),
+                               //compose({randomResize({400, 500, 600}, -1),
+                                        //randomSizeCrop(384, 600),
+                                        //randomResize(scales, 1333)})})});
 
-    ds = std::make_shared<TransformAllDataset>(ds, trainTransform);
+    //ds = std::make_shared<TransformAllDataset>(ds, trainTransform);
   }
 
   ds = std::make_shared<TransformAllDataset>(ds, Normalize());

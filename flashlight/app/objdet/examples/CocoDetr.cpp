@@ -232,6 +232,7 @@ int main(int argc, char** argv) {
   // Setup distributed training
   ////////////////////////
   std::shared_ptr<fl::Reducer> reducer = nullptr;
+  std::cout << "pre init distributed" << std::endl;
   if (FLAGS_distributed_enable) {
     fl::ext::initDistributed(
         FLAGS_distributed_world_rank,
@@ -241,6 +242,7 @@ int main(int argc, char** argv) {
 
     reducer = std::make_shared<fl::CoalescingReducer>(1.0, true, true);
   }
+  std::cout << "post init distributed" << std::endl;
   const int worldRank = fl::getWorldRank();
   const int worldSize = fl::getWorldSize();
 
@@ -342,6 +344,7 @@ int main(int argc, char** argv) {
   const int64_t data_batch_size_per_gpu = FLAGS_data_batch_size;
   const int64_t prefetch_threads = 10;
   std::string coco_dir = FLAGS_data_dir;
+  std::cout << "Pre dataset creation " << std::endl;
   auto train_ds = std::make_shared<CocoDataset>(
       coco_dir + "train.lst",
       worldRank,
@@ -359,6 +362,7 @@ int main(int argc, char** argv) {
       prefetch_threads,
       data_batch_size_per_gpu,
       true);
+  std::cout << "Post dataset creation " << std::endl;
 
   // Override any initialization if continuing
   if (runStatus == "continue") {
@@ -376,20 +380,24 @@ int main(int argc, char** argv) {
       return 0;
     }
   }
+  std::cout << " Pre all reduce" << std::endl;
   if (FLAGS_distributed_enable) {
     // synchronize parameters of the model so that the parameters in each
     // process is the same
     fl::allReduceParameters(detr);
+  std::cout << " Post  all reduce" << std::endl;
 
     // Add a hook to synchronize gradients of model parameters as they are
     // computed
     fl::distributeModuleGrads(detr, reducer);
   }
+  std::cout << " Post  distribute model grads" << std::endl;
 
   ////////////////
   // Training loop
   //////////////
   for (int epoch = startEpoch; epoch < FLAGS_train_epochs; epoch++) {
+    std::cout << "start epoch " << std::endl;
     int idx = 0;
     std::map<std::string, AverageValueMeter> meters;
     std::map<std::string, TimeMeter> timers;
@@ -398,6 +406,7 @@ int main(int argc, char** argv) {
     lrScheduler(epoch);
     train_ds->resample();
     for (auto& sample : *train_ds) {
+      std::cout << " got sample " << idx << std::endl;
       std::vector<Variable> input = {fl::Variable(sample.images, false),
                                      fl::Variable(sample.masks, false)};
       auto output = detr->forward(input);
