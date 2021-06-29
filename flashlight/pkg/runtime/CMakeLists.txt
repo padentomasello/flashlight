@@ -32,7 +32,7 @@ target_sources(
   ${CMAKE_CURRENT_LIST_DIR}/Runtime.cpp
 )
 
-message("here" ${gflags_LIBRARIES})
+include(${CMAKE_CURRENT_LIST_DIR}/amp/CMakeLists.txt)
 
 target_link_libraries(
   fl_pkg_runtime
@@ -48,6 +48,10 @@ target_include_directories(
   ${GLOG_INCLUDE_DIRS}
   ${gflags_INCLUDE_DIRS}
 )
+
+if (FL_BUILD_TESTS)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/test)
+endif ()
 
 if (FL_CODE_COVERAGE)
   add_coverage_to_target(TARGET fl_pkg_runtime)
