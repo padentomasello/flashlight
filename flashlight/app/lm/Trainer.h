@@ -122,8 +122,8 @@ class Trainer {
   std::shared_ptr<fl::pkg::runtime::DynamicScaler> dynamicScaler;
 
   fl::lib::text::Dictionary dictionary_;
-  std::shared_ptr<TextDataset> trainDataset_;
-  std::shared_ptr<TextDataset> validDataset_;
+  std::shared_ptr<fl::pkg::text::TextDataset> trainDataset_;
+  std::shared_ptr<fl::pkg::text::TextDataset> validDataset_;
 
   std::shared_ptr<fl::Reducer> reducer_;
   std::shared_ptr<fl::FirstOrderOptimizer> optimizer_;
