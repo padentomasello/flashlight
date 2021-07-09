@@ -7,7 +7,8 @@
 
 #include "flashlight/pkg/runtime/amp/DynamicScaler.h"
 
-#include "flashlight/fl/flashlight.h"
+#include "flashlight/fl/autograd/autograd.h"
+#include "flashlight/fl/common/Logging.h"
 
 namespace fl {
 namespace pkg {

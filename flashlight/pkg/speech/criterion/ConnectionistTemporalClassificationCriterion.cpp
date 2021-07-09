@@ -4,10 +4,10 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-#include "flashlight/pkg/speech/criterion/ConnectionistTemporalClassificationCriterion.h"
-
-#include "flashlight/pkg/runtime/common/DistributedUtils.h"
+#include "flashlight/fl/tensor/Compute.h"
 #include "flashlight/lib/sequence/criterion/cpu/ConnectionistTemporalClassificationCriterion.h"
+#include "flashlight/pkg/runtime/common/DistributedUtils.h"
+#include "flashlight/pkg/speech/criterion/ConnectionistTemporalClassificationCriterion.h"
 
 using CTC = fl::lib::cpu::ConnectionistTemporalClassificationCriterion<float>;
 using namespace fl::pkg::runtime;

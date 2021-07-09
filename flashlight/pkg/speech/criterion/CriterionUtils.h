@@ -7,12 +7,14 @@
 
 #pragma once
 
+#include <algorithm>
 #include <float.h>
 #include <stdint.h>
 #include <limits>
 
-#include "flashlight/fl/flashlight.h"
 
+#include "flashlight/fl/autograd/autograd.h"
+#include "flashlight/fl/common/DevicePtr.h"
 #include "flashlight/pkg/speech/criterion/Defines.h"
 
 namespace fl {

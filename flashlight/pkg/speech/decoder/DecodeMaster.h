@@ -7,9 +7,14 @@
 
 #pragma once
 
+#include <vector>
+
+#include <arrayfire.h>
+
 #include "flashlight/pkg/runtime/common/Utils-inl.h"
 #include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/fl/nn/nn.h"
+#include "flashlight/fl/autograd/autograd.h"
 #include "flashlight/lib/text/decoder/Decoder.h"
 #include "flashlight/lib/text/decoder/Trie.h"
 #include "flashlight/lib/text/decoder/lm/LM.h"

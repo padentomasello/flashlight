@@ -10,7 +10,10 @@
 #include <string>
 #include <vector>
 
-#include "flashlight/fl/flashlight.h"
+#include <arrayfire.h>
+
+#include "flashlight/fl/distributed/DistributedApi.h"
+#include "flashlight/fl/meter/meters.h"
 
 namespace fl {
 namespace pkg {

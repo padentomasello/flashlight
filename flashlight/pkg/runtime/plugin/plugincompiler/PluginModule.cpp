@@ -8,8 +8,6 @@
 
 #include <memory>
 
-#include "flashlight/fl/flashlight.h"
-
 /**
  * This is a placeholder plugin module.
  *

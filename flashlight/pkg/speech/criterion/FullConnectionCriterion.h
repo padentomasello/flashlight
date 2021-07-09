@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include "flashlight/fl/nn/modules/modules.h"
 #include "flashlight/pkg/speech/criterion/CriterionUtils.h"
 #include "flashlight/pkg/speech/criterion/Defines.h"
-#include "flashlight/fl/flashlight.h"
 
 namespace fl {
 namespace pkg {

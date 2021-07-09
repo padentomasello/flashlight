@@ -7,8 +7,6 @@
 
 #include "flashlight/pkg/runtime/common/DistributedUtils.h"
 
-#include "flashlight/fl/flashlight.h"
-
 namespace fl {
 namespace pkg {
 namespace runtime {

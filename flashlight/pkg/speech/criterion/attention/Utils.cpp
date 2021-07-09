@@ -8,8 +8,6 @@
 #include "flashlight/pkg/speech/criterion/attention/Utils.h"
 #include "flashlight/pkg/speech/criterion/attention/Defines.h"
 
-#include "flashlight/fl/flashlight.h"
-
 namespace fl {
 namespace pkg {
 namespace speech {
