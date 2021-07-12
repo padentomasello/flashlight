@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#include "flashlight/fl/nn/modules/modules.h"
 #include "flashlight/pkg/speech/criterion/Defines.h"
 #include "flashlight/pkg/speech/criterion/SequenceCriterion.h"
 #include "flashlight/pkg/speech/criterion/attention/attention.h"

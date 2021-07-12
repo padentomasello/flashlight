@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "flashlight/fl/flashlight.h"
+#include "flashlight/fl/nn/modules/modules.h"
+#include "flashlight/fl/optim/Optimizers.h"
 
 #include "flashlight/pkg/speech/common/Defines.h"
 #include "flashlight/pkg/speech/common/Flags.h"

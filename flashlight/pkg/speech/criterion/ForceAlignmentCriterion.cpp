@@ -6,6 +6,8 @@
  */
 
 #include "flashlight/pkg/speech/criterion/ForceAlignmentCriterion.h"
+#include "flashlight/fl/nn/Init.h"
+
 
 namespace fl {
 namespace pkg {

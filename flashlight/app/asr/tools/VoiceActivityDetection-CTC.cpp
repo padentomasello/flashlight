@@ -33,6 +33,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "flashlight/fl/common/Init.h"
 #include "flashlight/pkg/speech/common/Defines.h"
 #include "flashlight/pkg/speech/criterion/criterion.h"
 #include "flashlight/pkg/speech/data/FeatureTransforms.h"

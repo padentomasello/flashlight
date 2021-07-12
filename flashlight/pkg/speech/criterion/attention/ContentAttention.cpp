@@ -5,6 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+
+#include "flashlight/fl/autograd/autograd.h"
+#include "flashlight/fl/nn/modules/modules.h"
 #include "flashlight/pkg/speech/criterion/attention/ContentAttention.h"
 #include <cmath>
 #include "flashlight/pkg/speech/criterion/attention/Utils.h"

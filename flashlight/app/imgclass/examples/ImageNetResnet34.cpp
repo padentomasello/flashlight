@@ -12,18 +12,22 @@
 #include <glog/logging.h>
 
 #include "flashlight/app/imgclass/examples/Defines.h"
-#include "flashlight/pkg/runtime/amp/DynamicScaler.h"
-#include "flashlight/pkg/runtime/common/DistributedUtils.h"
-#include "flashlight/pkg/vision/dataset/Transforms.h"
-#include "flashlight/pkg/vision/dataset/DistributedDataset.h"
-#include "flashlight/pkg/vision/models/Resnet.h"
+#include "flashlight/fl/common/DynamicBenchmark.h"
+#include "flashlight/fl/common/Init.h"
 #include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/fl/meter/meters.h"
 #include "flashlight/fl/optim/optim.h"
+#include "flashlight/fl/tensor/Compute.h"
+#include "flashlight/fl/tensor/Random.h"
 #include "flashlight/lib/common/String.h"
 #include "flashlight/lib/common/System.h"
 #include "flashlight/pkg/runtime/Runtime.h"
+#include "flashlight/pkg/runtime/amp/DynamicScaler.h"
+#include "flashlight/pkg/runtime/common/DistributedUtils.h"
+#include "flashlight/pkg/vision/dataset/DistributedDataset.h"
 #include "flashlight/pkg/vision/dataset/Imagenet.h"
+#include "flashlight/pkg/vision/dataset/Transforms.h"
+#include "flashlight/pkg/vision/models/Resnet.h"
 
 DEFINE_string(data_dir, "", "Directory of imagenet data");
 DEFINE_double(train_lr, 0.1f, "Learning rate");

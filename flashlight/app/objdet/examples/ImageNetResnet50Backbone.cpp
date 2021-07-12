@@ -11,6 +11,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "flashlight/fl/common/Init.h"
+#include "flashlight/fl/tensor/Compute.h"
+#include "flashlight/fl/common/DynamicBenchmark.h"
+#include "flashlight/fl/tensor/Random.h"
 #include "flashlight/pkg/vision/dataset/Imagenet.h"
 #include "flashlight/pkg/vision/models/Resnet50Backbone.h"
 #include "flashlight/pkg/runtime/common/DistributedUtils.h"

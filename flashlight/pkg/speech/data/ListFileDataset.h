@@ -10,8 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "flashlight/fl/flashlight.h"
-
+#include "flashlight/fl/dataset/Dataset.h"
 #include "flashlight/lib/text/dictionary/Dictionary.h"
 
 namespace fl {

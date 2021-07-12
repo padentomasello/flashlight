@@ -20,10 +20,12 @@ target_link_libraries(
   fl_pkg_speech
   PUBLIC
   flashlight
-  fl_pkg_runtime
   fl_lib_text
+  PRIVATE
   fl_lib_audio
   fl_lib_sequence
+  ${GLOG_LIBRARIES} # Remove -- SFX Sox stuff is the only thing to use it
+  ${gflags_LIBRARIES}
   )
 
 # ------------------------ Components ------------------------

@@ -6,6 +6,8 @@
  */
 
 #include "flashlight/pkg/speech/criterion/FullConnectionCriterion.h"
+#include "flashlight/fl/autograd/autograd.h"
+#include "flashlight/fl/nn/nn.h"
 
 #include <cmath>
 

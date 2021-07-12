@@ -9,8 +9,6 @@
 
 #include <unordered_map>
 
-#include "flashlight/fl/flashlight.h"
-
 namespace fl {
 namespace pkg {
 namespace speech {

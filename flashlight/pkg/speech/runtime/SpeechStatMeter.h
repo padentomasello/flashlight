@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "flashlight/fl/flashlight.h"
+#include <arrayfire.h>
+#include <vector>
 
 namespace fl {
 namespace pkg {

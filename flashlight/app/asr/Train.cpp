@@ -17,7 +17,21 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "flashlight/pkg/speech/augmentation/SoundEffectConfig.h"
+//#include "flashlight/pkg/speech/augmentation/SoundEffectConfig.h"
+#include "flashlight/fl/common/DynamicBenchmark.h"
+#include "flashlight/fl/common/Init.h"
+#include "flashlight/fl/contrib/contrib.h"
+#include "flashlight/fl/memory/MemoryManagerInstaller.h"
+#include "flashlight/fl/optim/Utils.h"
+#include "flashlight/fl/tensor/Compute.h"
+#include "flashlight/fl/tensor/Random.h"
+#include "flashlight/lib/text/decoder/lm/KenLM.h"
+#include "flashlight/pkg/runtime/Runtime.h"
+#include "flashlight/pkg/runtime/amp/DynamicScaler.h"
+#include "flashlight/pkg/runtime/common/DistributedUtils.h"
+#include "flashlight/pkg/runtime/common/SequentialBuilder.h"
+#include "flashlight/pkg/runtime/common/Serializer.h"
+#include "flashlight/pkg/runtime/plugin/ModulePlugin.h"
 #include "flashlight/pkg/speech/common/Defines.h"
 #include "flashlight/pkg/speech/common/Flags.h"
 #include "flashlight/pkg/speech/criterion/criterion.h"
@@ -27,18 +41,6 @@
 #include "flashlight/pkg/speech/decoder/PlGenerator.h"
 #include "flashlight/pkg/speech/decoder/TranscriptionUtils.h"
 #include "flashlight/pkg/speech/runtime/runtime.h"
-#include "flashlight/pkg/runtime/Runtime.h"
-#include "flashlight/pkg/runtime/amp/DynamicScaler.h"
-#include "flashlight/pkg/runtime/common/DistributedUtils.h"
-#include "flashlight/pkg/runtime/common/SequentialBuilder.h"
-#include "flashlight/pkg/runtime/common/Serializer.h"
-#include "flashlight/pkg/runtime/plugin/ModulePlugin.h"
-#include "flashlight/fl/contrib/contrib.h"
-#include "flashlight/fl/flashlight.h"
-#include "flashlight/lib/common/System.h"
-#include "flashlight/lib/text/decoder/lm/KenLM.h"
-#include "flashlight/lib/text/dictionary/Dictionary.h"
-#include "flashlight/lib/text/dictionary/Utils.h"
 
 using fl::pkg::runtime::getRunFile;
 using fl::pkg::runtime::afToVector;

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "flashlight/fl/autograd/autograd.h"
 #include "flashlight/pkg/speech/criterion/CriterionUtils.h"
 #include "flashlight/pkg/speech/criterion/Defines.h"
 #include "flashlight/pkg/speech/criterion/ForceAlignmentCriterion.h"

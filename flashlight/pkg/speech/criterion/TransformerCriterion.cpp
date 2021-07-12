@@ -5,6 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#include "flashlight/fl/nn/Init.h"
+#include "flashlight/fl/nn/modules/modules.h"
 #include "flashlight/pkg/speech/criterion/TransformerCriterion.h"
 
 #include <algorithm>

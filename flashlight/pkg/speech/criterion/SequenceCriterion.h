@@ -9,7 +9,7 @@
 
 #include <stdexcept>
 
-#include "flashlight/fl/nn/modules/modules.h"
+#include "flashlight/fl/nn/modules/Container.h"
 
 namespace fl {
 namespace pkg {

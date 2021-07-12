@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include "flashlight/fl/autograd/autograd.h"
+#include "flashlight/fl/autograd/Variable.h"
 
 namespace fl {
 namespace pkg {

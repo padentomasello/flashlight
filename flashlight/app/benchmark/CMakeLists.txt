@@ -35,6 +35,7 @@ add_executable(benchmark ${CMAKE_CURRENT_LIST_DIR}/Run.cpp)
 target_link_libraries(
     benchmark
     flashlight-app-benchmark
+    fl_pkg_runtime
     fl_pkg_speech
     fl_pkg_vision
     ${CMAKE_DL_LIBS})

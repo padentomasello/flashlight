@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#include "flashlight/fl/nn/modules/modules.h"
 #include "flashlight/pkg/speech/criterion/attention/LocationAttention.h"
 #include "flashlight/pkg/speech/criterion/attention/Utils.h"
 

@@ -10,6 +10,7 @@
 
 #include <unordered_map>
 
+#include "flashlight/fl/common/Logging.h"
 #include "flashlight/lib/common/System.h"
 
 namespace fl {

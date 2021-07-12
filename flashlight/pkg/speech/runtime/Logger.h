@@ -8,8 +8,9 @@
 #pragma once
 
 #include <map>
+
+#include "flashlight/fl/meter/meters.h"
 #include "flashlight/pkg/speech/runtime/SpeechStatMeter.h"
-#include "flashlight/fl/flashlight.h"
 
 #define FL_LOG_MASTER(lvl) LOG_IF(lvl, (fl::getWorldRank() == 0))
 

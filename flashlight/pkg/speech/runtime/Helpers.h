@@ -18,8 +18,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "flashlight/fl/flashlight.h"
-
 #include "flashlight/pkg/speech/common/Defines.h"
 #include "flashlight/pkg/speech/common/Flags.h"
 #include "flashlight/pkg/speech/criterion/criterion.h"

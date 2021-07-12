@@ -11,6 +11,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "flashlight/fl/common/Init.h"
+#include "flashlight/fl/common/DynamicBenchmark.h"
 #include "flashlight/pkg/vision/dataset/Imagenet.h"
 #include "flashlight/app/imgclass/examples/Defines.h"
 #include "flashlight/pkg/runtime/common/DistributedUtils.h"

@@ -13,6 +13,7 @@
 
 #include <glog/logging.h>
 
+#include "flashlight/fl/dataset/datasets.h"
 #include "flashlight/pkg/runtime/common/DistributedUtils.h"
 #include "flashlight/lib/common/System.h"
 

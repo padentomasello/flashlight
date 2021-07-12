@@ -6,6 +6,7 @@
  */
 
 #include "flashlight/pkg/speech/runtime/Optimizer.h"
+#include "flashlight/fl/optim/optim.h"
 
 #include <glog/logging.h>
 

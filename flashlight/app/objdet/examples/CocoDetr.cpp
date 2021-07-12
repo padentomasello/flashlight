@@ -11,6 +11,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "flashlight/fl/common/Init.h"
+#include "flashlight/fl/tensor/Compute.h"
+#include "flashlight/fl/common/DynamicBenchmark.h"
 #include "flashlight/pkg/runtime/Runtime.h"
 #include "flashlight/app/objdet/common/Defines.h"
 #include "flashlight/pkg/vision/criterion/SetCriterion.h"
